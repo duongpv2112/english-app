@@ -1,0 +1,16 @@
+{
+  "name": "@english-app/dev-db",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/start.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "embedded-postgres": "17.9.0-beta.17"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1"
+  }
+}

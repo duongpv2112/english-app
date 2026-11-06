@@ -25,7 +25,7 @@
 
 ## Review Focus
 
-1. **Email khác hoa thường / có khoảng trắng** khi đăng nhập (`  Me@Mail.com `) → vẫn đăng nhập được. Test ở Task 4.
+1. **Email khác hoa thường / có khoảng trắng** khi đăng nhập (` Me@Mail.com`) → vẫn đăng nhập được. Test ở Task 4.
 2. **Thiếu hoặc sai `SESSION_SECRET`** → API không khởi động, báo lỗi rõ tên biến. Test ở Task 2.
 3. **Route `/api/...` không tồn tại** khi đã bật phục vụ SPA → trả JSON 404, không trả `index.html`. Test ở Task 6.
 4. **Body đăng nhập sai** (thiếu field, không phải JSON) → 400 `VALIDATION_ERROR` đúng dạng. Test ở Task 4.
@@ -36,11 +36,13 @@
 ### Task 1: Monorepo, dev database và package shared
 
 **Files:**
+
 - Create: `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `.gitignore`, `.nvmrc`, `.gitattributes`, `docker-compose.yml`, `README.md`
 - Create: `packages/shared/package.json`, `packages/shared/tsconfig.json`, `packages/shared/src/index.ts`, `packages/shared/src/errors.ts`, `packages/shared/src/auth.ts`
 - Test: `packages/shared/src/auth.test.ts`
 
 **Interfaces:**
+
 - Produces (`@english-app/shared`):
   - `ErrorCode` = union `'VALIDATION_ERROR' | 'UNAUTHENTICATED' | 'INVALID_CREDENTIALS' | 'NOT_FOUND' | 'RATE_LIMITED' | 'INTERNAL_ERROR'`
   - `ApiErrorBody = { error: { code: ErrorCode; message: string } }` và `apiErrorBodySchema` (Zod)
@@ -61,7 +63,9 @@
 
 ```ts
 it('normalizes email', () => {
-  expect(loginRequestSchema.parse({ email: '  Me@Mail.com ', password: 'x' }).email).toBe('me@mail.com')
+  expect(loginRequestSchema.parse({ email: '  Me@Mail.com ', password: 'x' }).email).toBe(
+    'me@mail.com',
+  )
 })
 it('rejects missing password', () => {
   expect(loginRequestSchema.safeParse({ email: 'me@mail.com' }).success).toBe(false)
@@ -90,11 +94,13 @@ it('rejects invalid email', () => {
 ### Task 2: API skeleton — config, error handler, health
 
 **Files:**
+
 - Create: `apps/api/package.json`, `apps/api/tsconfig.json`, `apps/api/vitest.config.ts`, `apps/api/.env.example`
 - Create: `apps/api/src/config.ts`, `apps/api/src/app.ts`, `apps/api/src/server.ts`, `apps/api/src/plugins/errorHandler.ts`, `apps/api/src/routes/health.ts`
 - Test: `apps/api/src/config.test.ts`, `apps/api/src/app.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ApiErrorBody`, `ErrorCode` từ Task 1.
 - Produces:
   - `loadConfig(env: NodeJS.ProcessEnv): Config` — ném `Error` có message chứa tên biến sai.
@@ -167,11 +173,13 @@ it('thrown generic error → 500 INTERNAL_ERROR without stack', async () => {
 ### Task 3: Prisma, model User và seed
 
 **Files:**
+
 - Create: `apps/api/prisma/schema.prisma`, `apps/api/prisma/migrations/*` (do Prisma sinh), `apps/api/src/db.ts`, `apps/api/src/seed.ts`, `apps/api/test/globalSetup.ts`, `apps/api/.env.test.example`
 - Modify: `apps/api/src/app.ts` (decorate `app.db`), `apps/api/vitest.config.ts` (globalSetup)
 - Test: `apps/api/src/seed.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Config` (Task 2).
 - Produces:
   - Model `User` đúng spec Mục 4: `id`, `email @unique`, `passwordHash`, `newPerDay @default(20)`, `timezone @default("Asia/Ho_Chi_Minh")`, `playbackRate @default(1.0)`, `startedAt @default(now())`. Các model khác để các phase sau.
@@ -220,11 +228,13 @@ it('is idempotent and updates password', async () => {
 ### Task 4: Đăng nhập — login, logout, me
 
 **Files:**
+
 - Create: `apps/api/src/plugins/auth.ts`, `apps/api/src/routes/auth.ts`
 - Modify: `apps/api/src/app.ts`
 - Test: `apps/api/src/routes/auth.test.ts`
 
 **Interfaces:**
+
 - Consumes: `loginRequestSchema`, `meResponseSchema` (Task 1); `AppError` (Task 2); `app.db`, `seedUser` (Task 3).
 - Produces:
   - `POST /api/auth/login` body `LoginRequest` → `200 MeResponse` + set cookie `session`. Sai email hoặc mật khẩu → 401 `INVALID_CREDENTIALS`, cùng một message cho cả hai trường hợp.
@@ -240,7 +250,7 @@ it('login ok → 200 + session cookie', async () => {
   const res = await login(app, 'me@mail.com', 'secret123')
   expect(res.statusCode).toBe(200)
   expect(res.json()).toEqual({ id: expect.any(String), email: 'me@mail.com' })
-  expect(res.cookies.find(c => c.name === 'session')?.httpOnly).toBe(true)
+  expect(res.cookies.find((c) => c.name === 'session')?.httpOnly).toBe(true)
 })
 it('login with messy email casing → 200', async () => {
   expect((await login(app, '  ME@Mail.com ', 'secret123')).statusCode).toBe(200)
@@ -253,11 +263,20 @@ it('wrong password and unknown email → same 401 INVALID_CREDENTIALS', async ()
   expect(a.json().error.code).toBe('INVALID_CREDENTIALS')
 })
 it('invalid body → 400 VALIDATION_ERROR', async () => {
-  const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'me@mail.com' } })
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/auth/login',
+    payload: { email: 'me@mail.com' },
+  })
   expect(res.json().error.code).toBe('VALIDATION_ERROR')
 })
 it('non-JSON body → 400 VALIDATION_ERROR', async () => {
-  const res = await app.inject({ method: 'POST', url: '/api/auth/login', headers: { 'content-type': 'application/json' }, payload: '{bad' })
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/auth/login',
+    headers: { 'content-type': 'application/json' },
+    payload: '{bad',
+  })
   expect(res.statusCode).toBe(400)
   expect(res.json().error.code).toBe('VALIDATION_ERROR')
 })
@@ -273,7 +292,9 @@ it('me with session → 200; after logout → 401', async () => {
   expect((await app.inject({ url: '/api/auth/me', cookies: cookie })).statusCode).toBe(200)
   const out = await app.inject({ method: 'POST', url: '/api/auth/logout', cookies: cookie })
   expect(out.statusCode).toBe(204)
-  expect((await app.inject({ url: '/api/auth/me', cookies: sessionCookie(out) })).statusCode).toBe(401)
+  expect((await app.inject({ url: '/api/auth/me', cookies: sessionCookie(out) })).statusCode).toBe(
+    401,
+  )
 })
 it('6th login attempt within a minute → 429 RATE_LIMITED', async () => {
   for (let i = 0; i < 5; i++) await login(app, 'me@mail.com', 'nope')
@@ -283,7 +304,7 @@ it('6th login attempt within a minute → 429 RATE_LIMITED', async () => {
 })
 it('cookie is not secure outside production', async () => {
   const res = await login(app, 'me@mail.com', 'secret123')
-  expect(res.cookies.find(c => c.name === 'session')?.secure).toBeFalsy()
+  expect(res.cookies.find((c) => c.name === 'session')?.secure).toBeFalsy()
 })
 ```
 
@@ -304,10 +325,12 @@ it('cookie is not secure outside production', async () => {
 ### Task 5: Web app — đăng nhập và trang Hello
 
 **Files:**
+
 - Create: `apps/web/package.json`, `apps/web/tsconfig.json`, `apps/web/vite.config.ts`, `apps/web/index.html`, `apps/web/src/main.ts`, `apps/web/src/App.vue`, `apps/web/src/router.ts`, `apps/web/src/api/client.ts`, `apps/web/src/stores/auth.ts`, `apps/web/src/views/LoginView.vue`, `apps/web/src/views/HomeView.vue`
 - Test: `apps/web/src/api/client.test.ts`, `apps/web/src/router.test.ts`
 
 **Interfaces:**
+
 - Consumes: `LoginRequest`, `MeResponse`, `ApiErrorBody`, `ErrorCode` (Task 1); các route của Task 4.
 - Produces:
   - `class ApiError extends Error { code: ErrorCode; status: number }`
@@ -336,7 +359,10 @@ it('throws INTERNAL_ERROR when error body is not JSON', async () => {
 it('sends credentials and JSON body', async () => {
   const f = mockFetch(200, {})
   await api('/auth/login', { method: 'POST', body: { email: 'a', password: 'b' } })
-  expect(f).toHaveBeenCalledWith('/api/auth/login', expect.objectContaining({ credentials: 'include', method: 'POST' }))
+  expect(f).toHaveBeenCalledWith(
+    '/api/auth/login',
+    expect.objectContaining({ credentials: 'include', method: 'POST' }),
+  )
 })
 ```
 
@@ -347,7 +373,9 @@ it('redirects to /login with redirect param when unauthenticated', async () => {
   await router.push('/')
   expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/')
 })
-it('redirects /login → / when already authenticated', async () => { /* store.user được set */ })
+it('redirects /login → / when already authenticated', async () => {
+  /* store.user được set */
+})
 ```
 
 - [ ] **Step 4: Chạy test, xác nhận FAIL**
@@ -377,11 +405,13 @@ it('redirects /login → / when already authenticated', async () => { /* store.u
 ### Task 6: API phục vụ bản build của web
 
 **Files:**
+
 - Create: `apps/api/src/plugins/spa.ts`
 - Modify: `apps/api/src/app.ts`, root `package.json` (script `build`: build web trước, rồi api; script `start`)
 - Test: `apps/api/src/plugins/spa.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Config.webDistDir` (Task 2).
 - Produces:
   - Khi `webDistDir` khác `null`:
@@ -430,9 +460,11 @@ it('no static serving when webDistDir is null', async () => {
 ### Task 7: CI và deploy lên Render
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`, `render.yaml`, `docs/deploy.md`
 
 **Interfaces:**
+
 - Consumes: các script `typecheck`, `lint`, `test`, `build`, `start`, `db:deploy`, `db:seed` từ các task trước.
 - Produces: pipeline CI; production URL trả `GET /api/health` → `{"status":"ok"}`.
 

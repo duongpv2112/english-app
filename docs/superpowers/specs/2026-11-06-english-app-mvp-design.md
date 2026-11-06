@@ -7,29 +7,35 @@
 ## 1. Bối cảnh và mục tiêu
 
 ### Người dùng
+
 - Trình độ hiện tại: **A2**.
 - Làm IT, muốn chuyển sang công ty IT có cơ hội đi outsourcing.
 - Thời gian học: **1–2 giờ/ngày**, trên cả điện thoại và máy tính.
 - Viết code app theo kiểu nhỏ lẻ, không tính vào thời gian học.
 
 ### Mốc mục tiêu
-| Mốc | Mục tiêu |
-|---|---|
-| 02/2027 | TOEIC 650 (Nghe + Đọc) |
-| 06/2027 | B2 — giao tiếp tốt |
+
+| Mốc       | Mục tiêu                                        |
+| --------- | ----------------------------------------------- |
+| 02/2027   | TOEIC 650 (Nghe + Đọc)                          |
+| 06/2027   | B2 — giao tiếp tốt                              |
 | Cuối 2027 | IELTS 7.5 (tham vọng; đánh giá lại vào 06/2027) |
 
 ### Thứ tự ưu tiên kỹ năng
+
 Từ vựng > Nghe > Nói/Phát âm > Ngữ pháp > Đọc/Viết.
 
 ### Mục tiêu của MVP
+
 Phục vụ mốc TOEIC:
+
 - Thuộc khoảng **1.200 từ TOEIC** trước 02/2027, tức khoảng 15–20 từ mới mỗi ngày.
 - Nghe hiểu được câu ở tốc độ TOEIC.
 
 MVP phải **dùng được để học hằng ngày càng sớm càng tốt** (sau bước 3 trong Mục 10).
 
 ### Tiêu chí thành công
+
 - Học được hằng ngày trên điện thoại (PWA) và máy tính, tiến độ đồng bộ giữa hai thiết bị.
 - Học được khi mạng yếu hoặc mất mạng; kết quả không bị mất.
 - Trang tổng quan cho biết mình đang đi trước hay đi sau tiến độ cần có để kịp mốc 02/2027.
@@ -49,20 +55,21 @@ english-app/
     └── content-importer/    script nạp từ, tạo ví dụ (Claude API) + audio (Azure TTS)
 ```
 
-| Thành phần | Lựa chọn |
-|---|---|
-| Frontend | Vue 3, Vite, TypeScript, Vue Router, Pinia, `vite-plugin-pwa`, IndexedDB (ví dụ qua `idb`) |
-| Backend | Fastify, Zod (validate), `@fastify/secure-session` (cookie session), `pino` (log) |
-| ORM / DB | Prisma + PostgreSQL. Production dùng Neon (gói free); local dùng Postgres qua Docker |
-| SRS | FSRS qua `ts-fsrs`, đặt trong `packages/shared` để client và server dùng chung |
-| Lưu audio | Cloudflare R2 (gói free 10GB), truy cập công khai chỉ đọc |
-| Test | Vitest |
-| CI/CD | GitHub Actions (lint, test, build); push lên `main` thì tự deploy lên Render (hoặc Fly.io) |
+| Thành phần | Lựa chọn                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------ |
+| Frontend   | Vue 3, Vite, TypeScript, Vue Router, Pinia, `vite-plugin-pwa`, IndexedDB (ví dụ qua `idb`) |
+| Backend    | Fastify, Zod (validate), `@fastify/secure-session` (cookie session), `pino` (log)          |
+| ORM / DB   | Prisma + PostgreSQL. Production dùng Neon (gói free); local dùng Postgres qua Docker       |
+| SRS        | FSRS qua `ts-fsrs`, đặt trong `packages/shared` để client và server dùng chung             |
+| Lưu audio  | Cloudflare R2 (gói free 10GB), truy cập công khai chỉ đọc                                  |
+| Test       | Vitest                                                                                     |
+| CI/CD      | GitHub Actions (lint, test, build); push lên `main` thì tự deploy lên Render (hoặc Fly.io) |
 
 - Một service Node phục vụ cả API (`/api/*`) lẫn file build tĩnh của Vue, nên không cần CORS.
 - Logic quan trọng nằm ở `packages/shared`, và **server là nguồn dữ liệu chính thức**.
 
 ### Đăng nhập
+
 - Chỉ có một tài khoản, tạo bằng script seed. Không có trang đăng ký.
 - Đăng nhập bằng email + mật khẩu (hash bằng argon2); session lưu trong cookie mã hóa (httpOnly, secure, sameSite=lax).
 - Route đăng nhập có giới hạn số lần thử (`@fastify/rate-limit`).
@@ -70,6 +77,7 @@ english-app/
 ## 3. Tính năng MVP
 
 ### 3.1 Từ vựng với SRS
+
 - **Mỗi thẻ gồm:** từ, phiên âm IPA, loại từ, nghĩa tiếng Việt, 1–2 câu ví dụ (ngữ cảnh công sở/IT) kèm bản dịch, audio của từ và của câu.
 - **Hai kiểu ôn cho mỗi từ** (mỗi kiểu là một `Card` riêng):
   - `RECOGNIZE`: nhìn từ, nghe audio, nhớ nghĩa, lật thẻ rồi tự chấm.
@@ -84,6 +92,7 @@ english-app/
 - **Nút "Báo sai"** trên thẻ: sửa trực tiếp nghĩa, IPA hoặc câu ví dụ, rồi lưu lên server.
 
 ### 3.2 Luyện nghe chép chính tả
+
 - **Nguồn câu:** các câu `Example` thuộc những từ đã học (từ có ít nhất một lần chấm).
   - Ưu tiên câu chưa luyện hoặc câu có điểm thấp lần trước.
   - Mỗi phiên khoảng 10 câu.
@@ -93,13 +102,14 @@ english-app/
   - Xem được đáp án cùng bản dịch.
 - **Quy tắc chấm** (đặt trong `packages/shared`):
   - Không phân biệt hoa thường, bỏ qua dấu câu, gộp nhiều khoảng trắng thành một.
-  - Coi dạng viết tắt và dạng đầy đủ là như nhau (ví dụ *don't* = *do not*, *I'm* = *I am*), theo một bảng cố định.
+  - Coi dạng viết tắt và dạng đầy đủ là như nhau (ví dụ _don't_ = _do not_, _I'm_ = _I am_), theo một bảng cố định.
   - So khớp bằng thuật toán LCS (dãy con chung dài nhất) theo từ. Điểm = số từ đúng / số từ trong câu đáp án.
 - **Liên kết với SRS:**
   - Nếu từ chính của câu bị nghe sai, thẻ `LISTEN_TYPE` của từ đó được đưa lên ôn sớm hơn: hạn ôn lùi về hôm nay. Không ghi thêm `ReviewLog`.
   - Nếu từ chính chưa có thẻ `LISTEN_TYPE` thì bỏ qua bước này.
 
 ### 3.3 Trang tổng quan
+
 - Số thẻ đến hạn hôm nay, số từ mới còn lại trong ngày, streak (số ngày liên tiếp có học).
 - Số từ đã thuộc trên 1.200, so với tiến độ cần có để kịp mốc 02/2027.
   - "Đã thuộc" nghĩa là thẻ `RECOGNIZE` đang ở trạng thái FSRS `Review`.
@@ -108,10 +118,13 @@ english-app/
 - Trạng thái đồng bộ: online hay offline, và số lượt chấm đang chờ gửi lên.
 
 ### 3.4 Cài đặt
+
 - `newPerDay`, múi giờ, tốc độ phát audio mặc định.
 
 ### 3.5 Ngoài phạm vi MVP
+
 Các phần sau để giai đoạn sau:
+
 - Luyện nói, phát âm, shadowing
 - Ngữ pháp
 - Đề luyện TOEIC Part 1–7
@@ -120,11 +133,12 @@ Các phần sau để giai đoạn sau:
 - Hỗ trợ nhiều người dùng
 
 ### 3.6 Lộ trình sau MVP (định hướng, chưa thiết kế)
-| Thời điểm | Nội dung |
-|---|---|
-| Trước 02/2027 | Luyện TOEIC Part 2/3/4 (nghe) và Part 5 (ngữ pháp, từ vựng) |
-| Trước 06/2027 | Luyện nói: shadowing, hội thoại với AI, chấm phát âm |
-| Cuối 2027 | Writing và Speaking theo dạng bài IELTS, AI chấm và nhận xét |
+
+| Thời điểm     | Nội dung                                                     |
+| ------------- | ------------------------------------------------------------ |
+| Trước 02/2027 | Luyện TOEIC Part 2/3/4 (nghe) và Part 5 (ngữ pháp, từ vựng)  |
+| Trước 06/2027 | Luyện nói: shadowing, hội thoại với AI, chấm phát âm         |
+| Cuối 2027     | Writing và Speaking theo dạng bài IELTS, AI chấm và nhận xét |
 
 ## 4. Mô hình dữ liệu (Prisma)
 
@@ -215,23 +229,24 @@ Session lưu trong cookie mã hóa, nên không cần bảng session.
 
 ## 5. API (tiền tố `/api`)
 
-| Method | Path | Mô tả |
-|---|---|---|
-| POST | `/auth/login` | Đăng nhập |
-| POST | `/auth/logout` | Đăng xuất |
-| GET | `/auth/me` | Người dùng hiện tại |
-| GET | `/study/today` | Hàng đợi hôm nay: thẻ đến hạn + từ mới, kèm dữ liệu từ, ví dụ và URL audio |
-| POST | `/reviews/batch` | Gửi danh sách lượt chấm `{ id, cardId, rating, reviewedAt }[]`; không ghi trùng theo `id` |
-| GET | `/dictation/session` | Khoảng 10 câu để luyện |
-| POST | `/dictation/attempts/batch` | Gửi các lần chép chính tả; server chấm lại bằng logic trong `shared` |
-| PATCH | `/words/:id` | Sửa nội dung từ hoặc ví dụ (nút "Báo sai") |
-| GET | `/stats/overview` | Số liệu cho trang tổng quan |
-| GET/PATCH | `/settings` | Cài đặt |
+| Method    | Path                        | Mô tả                                                                                     |
+| --------- | --------------------------- | ----------------------------------------------------------------------------------------- |
+| POST      | `/auth/login`               | Đăng nhập                                                                                 |
+| POST      | `/auth/logout`              | Đăng xuất                                                                                 |
+| GET       | `/auth/me`                  | Người dùng hiện tại                                                                       |
+| GET       | `/study/today`              | Hàng đợi hôm nay: thẻ đến hạn + từ mới, kèm dữ liệu từ, ví dụ và URL audio                |
+| POST      | `/reviews/batch`            | Gửi danh sách lượt chấm `{ id, cardId, rating, reviewedAt }[]`; không ghi trùng theo `id` |
+| GET       | `/dictation/session`        | Khoảng 10 câu để luyện                                                                    |
+| POST      | `/dictation/attempts/batch` | Gửi các lần chép chính tả; server chấm lại bằng logic trong `shared`                      |
+| PATCH     | `/words/:id`                | Sửa nội dung từ hoặc ví dụ (nút "Báo sai")                                                |
+| GET       | `/stats/overview`           | Số liệu cho trang tổng quan                                                               |
+| GET/PATCH | `/settings`                 | Cài đặt                                                                                   |
 
 - Mọi request và response đều có schema Zod đặt trong `packages/shared`.
 - Lỗi luôn trả về dạng `{ error: { code, message } }`.
 
 ### Xử lý `POST /reviews/batch`
+
 1. Bỏ qua các `id` đã có trong `ReviewLog`.
 2. Gom các lượt chấm theo `cardId`, sắp xếp theo `reviewedAt` tăng dần.
 3. Nếu có lượt chấm cũ hơn `lastReview` của thẻ, tức đến muộn, thì tính lại trạng thái FSRS từ toàn bộ log của thẻ đó.
@@ -258,6 +273,7 @@ Session lưu trong cookie mã hóa, nên không cần bảng session.
    - Xuất file markdown hoặc CSV để rà lại các nội dung mới tạo.
 
 Ghi chú:
+
 - Bản đầu tiên nạp khoảng 200 từ đầu (`--limit 200`) để bắt đầu học ngay.
 - Key Claude, key Azure và thông tin R2 chỉ để trong `.env` trên máy, không commit và không đưa lên server production.
 - Mô hình Claude: dùng model mới nhất có chi phí thấp phù hợp. Chi phí cụ thể sẽ kiểm tra khi triển khai.
