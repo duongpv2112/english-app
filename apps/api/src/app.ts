@@ -17,6 +17,8 @@ declare module 'fastify' {
 
 export async function buildApp(config: Config): Promise<FastifyInstance> {
   const app = Fastify({
+    // Render (and any reverse proxy) sets X-Forwarded-For; rate limiting needs the real client IP.
+    trustProxy: true,
     logger: config.nodeEnv === 'test' ? false : { level: 'info' },
   })
 

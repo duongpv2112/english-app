@@ -39,4 +39,15 @@ describe('router auth guard', () => {
     await router.push('/login')
     expect(spy).toHaveBeenCalledTimes(1)
   })
+
+  it('goes to /login when the session check fails with a network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    try {
+      const router = createAppRouter(createMemoryHistory())
+      await router.push('/')
+      expect(router.currentRoute.value.path).toBe('/login')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
 })

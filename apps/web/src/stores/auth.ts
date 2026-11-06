@@ -1,6 +1,6 @@
 import type { LoginRequest, MeResponse } from '@english-app/shared'
 import { defineStore } from 'pinia'
-import { api, ApiError } from '../api/client.ts'
+import { api } from '../api/client.ts'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -12,8 +12,8 @@ export const useAuthStore = defineStore('auth', {
     async fetchMe() {
       try {
         this.user = await api<MeResponse>('/auth/me')
-      } catch (e) {
-        if (!(e instanceof ApiError)) throw e
+      } catch {
+        // 401, server error or no network: treat as logged out; the login form reports errors.
         this.user = null
       } finally {
         this.checked = true

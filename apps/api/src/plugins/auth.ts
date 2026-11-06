@@ -25,6 +25,8 @@ export const authPlugin = fp(async (app: FastifyInstance, opts: { config: Config
   await app.register(secureSession, {
     key: opts.config.sessionSecret,
     cookieName: 'session',
+    // secure-session rejects sessions older than this regardless of cookie maxAge (default: 1 day).
+    expiry: THIRTY_DAYS_SECONDS,
     cookie: {
       path: '/',
       httpOnly: true,

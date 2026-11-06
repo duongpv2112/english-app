@@ -5,6 +5,8 @@ packages:
 
 allowBuilds:
   '@embedded-postgres/windows-x64': true
+  # CI and Render use a real Postgres, so the Linux embedded binaries are not needed there.
+  '@embedded-postgres/linux-x64': false
   '@prisma/client': true
   '@prisma/engines': true
   argon2: true

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { login, sessionCookie, testApp } from '../../test/app.ts'
 import { resetDb, testDb } from '../../test/db.ts'
 import { seedUser } from '../seed.ts'
@@ -106,5 +106,42 @@ describe('auth routes', () => {
     const res = await login(prod, 'me@mail.com', 'secret123')
     expect(res.cookies.find((c) => c.name === 'session')?.secure).toBe(true)
     await prod.close()
+  })
+
+  it('session is still valid after 29 days and expires after 31', async () => {
+    const cookie = sessionCookie(await login(app, 'me@mail.com', 'secret123'))
+    const day = 24 * 60 * 60 * 1000
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 29 * day })
+    try {
+      expect((await app.inject({ url: '/api/auth/me', cookies: cookie })).statusCode).toBe(200)
+      vi.setSystemTime(Date.now() + 2 * day)
+      expect((await app.inject({ url: '/api/auth/me', cookies: cookie })).statusCode).toBe(401)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('form-encoded login body → 4xx VALIDATION_ERROR, not 500', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      payload: 'email=me%40mail.com&password=secret123',
+    })
+    expect(res.statusCode).toBe(415)
+    expect(res.json().error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('rate limit is per client IP behind a proxy', async () => {
+    const from = (ip: string, password: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        headers: { 'x-forwarded-for': ip },
+        payload: { email: 'me@mail.com', password },
+      })
+    for (let i = 0; i < 5; i++) await from('203.0.113.1', 'nope')
+    expect((await from('203.0.113.1', 'nope')).statusCode).toBe(429)
+    expect((await from('198.51.100.7', 'secret123')).statusCode).toBe(200)
   })
 })

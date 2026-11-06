@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build && pnpm --filter @english-app/api db:deploy
-    startCommand: pnpm start
+    startCommand: node apps/api/src/server.ts
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV

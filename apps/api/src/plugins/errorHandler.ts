@@ -43,7 +43,11 @@ export function registerErrorHandling(app: FastifyInstance, opts: { spaFallback:
       return reply.status(400).send(body('VALIDATION_ERROR', 'Invalid input'))
     }
     const status = (error as { statusCode?: number }).statusCode
-    const code = status !== undefined ? codeByStatus[status] : undefined
+    // Other client errors Fastify raises (415 unsupported type, 413 too large...) keep their status.
+    const code =
+      status === undefined
+        ? undefined
+        : (codeByStatus[status] ?? (status >= 400 && status < 500 ? 'VALIDATION_ERROR' : undefined))
     if (status !== undefined && code !== undefined) {
       return reply.status(status).send(body(code, (error as Error).message))
     }
