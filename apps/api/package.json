@@ -7,14 +7,22 @@
     "build": "tsc -p tsconfig.json",
     "start": "node src/server.ts",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "node --env-file-if-exists=.env src/seed-cli.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@english-app/shared": "workspace:*",
+    "@prisma/client": "^6.19.3",
+    "argon2": "^0.45.2",
     "fastify": "^5.12.8",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "embedded-postgres": "17.9.0-beta.17",
+    "prisma": "^6.19.3",
     "tsx": "^4.23.15",
     "vitest": "5.1.0"
   }

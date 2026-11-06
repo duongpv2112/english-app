@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  newPerDay    Int      @default(20)
+  timezone     String   @default("Asia/Ho_Chi_Minh")
+  playbackRate Float    @default(1.0)
+  startedAt    DateTime @default(now())
+}
