@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: english-app
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build && pnpm --filter @english-app/api db:deploy
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: '24'
+      - key: WEB_DIST_DIR
+        value: apps/web/dist
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
