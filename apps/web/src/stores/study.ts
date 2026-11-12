@@ -17,6 +17,9 @@ import { useAuthStore } from './auth.ts'
 /** The server accepts at most this many reviews per request. */
 const BATCH_SIZE = 500
 
+/** The request loop currently sending pending ratings for a store, if any. */
+const inFlight = new WeakMap<object, Promise<void>>()
+
 /** A 401 means the session ended; clearing the user lets the views send them to the login page. */
 function noteIfLoggedOut(error: unknown) {
   if (error instanceof ApiError && error.code === 'UNAUTHENTICATED') useAuthStore().user = null
@@ -36,7 +39,6 @@ export const useStudyStore = defineStore('study', {
     pending: loadPending(),
     /** The last attempt to send pending ratings failed. */
     syncError: false,
-    flushing: false,
   }),
   getters: {
     current: (state): StudyCard | null => state.queue[0] ?? null,
@@ -105,34 +107,37 @@ export const useStudyStore = defineStore('study', {
     },
 
     /** Sends pending ratings, one request at a time, until none are left or a request fails. */
-    async flush() {
-      if (this.flushing) return
-      this.flushing = true
-      try {
-        while (this.pending.length > 0) {
-          const batch = this.pending.slice(0, BATCH_SIZE)
-          try {
-            await api<ReviewBatchResponse>('/reviews/batch', {
-              method: 'POST',
-              body: { reviews: batch },
-            })
-          } catch (error) {
-            // A 400 will never be accepted however often it is retried, so let the batch go.
-            const unusable = error instanceof ApiError && error.status === 400
-            if (!unusable) {
-              noteIfLoggedOut(error)
-              this.syncError = true
-              return
-            }
+    flush(): Promise<void> {
+      // Callers that arrive mid-flight share the running loop, which also picks up their ratings.
+      const running = inFlight.get(this)
+      if (running) return running
+      const run = this.sendPending().finally(() => inFlight.delete(this))
+      inFlight.set(this, run)
+      return run
+    },
+
+    async sendPending() {
+      while (this.pending.length > 0) {
+        const batch = this.pending.slice(0, BATCH_SIZE)
+        try {
+          await api<ReviewBatchResponse>('/reviews/batch', {
+            method: 'POST',
+            body: { reviews: batch },
+          })
+        } catch (error) {
+          // A 400 will never be accepted however often it is retried, so let the batch go.
+          const unusable = error instanceof ApiError && error.status === 400
+          if (!unusable) {
+            noteIfLoggedOut(error)
+            this.syncError = true
+            return
           }
-          const sent = new Set(batch.map((r: ReviewInput) => r.id))
-          this.pending = this.pending.filter((r) => !sent.has(r.id))
-          savePending(this.pending)
         }
-        this.syncError = false
-      } finally {
-        this.flushing = false
+        const sent = new Set(batch.map((r: ReviewInput) => r.id))
+        this.pending = this.pending.filter((r) => !sent.has(r.id))
+        savePending(this.pending)
       }
+      this.syncError = false
     },
   },
 })

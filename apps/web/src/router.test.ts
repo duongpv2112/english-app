@@ -50,4 +50,14 @@ describe('router auth guard', () => {
       vi.unstubAllGlobals()
     }
   })
+
+  it('/study requires login', async () => {
+    const auth = useAuthStore()
+    auth.user = null
+    auth.checked = true
+    const router = createAppRouter(createMemoryHistory())
+    await router.push('/study')
+    expect(router.currentRoute.value.path).toBe('/login')
+    expect(router.currentRoute.value.query.redirect).toBe('/study')
+  })
 })

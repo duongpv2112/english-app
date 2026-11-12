@@ -1,0 +1,114 @@
+<script setup lang="ts">
+import type { Rating } from '@english-app/shared'
+import { onBeforeUnmount, onMounted } from 'vue'
+import AudioButton from '../components/AudioButton.vue'
+import { useStudyStore } from '../stores/study.ts'
+
+const study = useStudyStore()
+
+const ratings: { rating: Rating; label: string; tone: string }[] = [
+  { rating: 1, label: 'Quên', tone: 'again' },
+  { rating: 2, label: 'Khó', tone: 'hard' },
+  { rating: 3, label: 'Được', tone: 'good' },
+  { rating: 4, label: 'Dễ', tone: 'easy' },
+]
+
+function onKey(event: KeyboardEvent) {
+  if (event.ctrlKey || event.metaKey || event.altKey || !study.current) return
+  // A focused button already reacts to Space and Enter itself.
+  const onButton = event.target instanceof HTMLElement && event.target.closest('button, a')
+  if (!study.revealed) {
+    if ((event.key === ' ' || event.key === 'Enter') && !onButton) {
+      event.preventDefault()
+      study.reveal()
+    }
+    return
+  }
+  if (['1', '2', '3', '4'].includes(event.key)) {
+    event.preventDefault()
+    study.rate(Number(event.key) as Rating)
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKey)
+  void study.load()
+})
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+</script>
+
+<template>
+  <main class="page study">
+    <header class="topbar">
+      <RouterLink to="/" class="link">← Trang chủ</RouterLink>
+      <span v-if="study.status === 'ready' && study.current" class="muted">
+        Còn {{ study.queue.length }} thẻ
+      </span>
+    </header>
+
+    <p v-if="study.syncError" class="notice" role="status">
+      {{ study.pending.length }} lượt chấm chưa lưu.
+      <button type="button" class="link" @click="study.flush()">Thử lại</button>
+    </p>
+
+    <p v-if="study.status === 'loading' || study.status === 'idle'" class="muted">Đang tải…</p>
+
+    <section v-else-if="study.status === 'error'" class="panel">
+      <p class="error" role="alert">Không tải được thẻ. Kiểm tra kết nối rồi thử lại.</p>
+      <button type="button" @click="study.load()">Thử lại</button>
+    </section>
+
+    <section v-else-if="study.finished" class="panel done">
+      <h1>Xong rồi!</h1>
+      <p v-if="study.reviewedCount > 0">Bạn đã chấm {{ study.reviewedCount }} lượt.</p>
+      <p v-else>Hôm nay không còn thẻ nào để học.</p>
+      <RouterLink to="/" class="button primary">Về trang chủ</RouterLink>
+    </section>
+
+    <template v-else-if="study.current">
+      <!-- The key makes Vue rebuild the card, so audio restarts and nothing carries over. -->
+      <article :key="study.current.cardId + study.reviewedCount" class="flashcard">
+        <p v-if="study.current.isNew" class="badge">Từ mới</p>
+        <h1 class="lemma">{{ study.current.word.lemma }}</h1>
+        <p class="ipa">
+          <span v-if="study.current.word.ipa">{{ study.current.word.ipa }}</span>
+          <AudioButton :url="study.current.word.audioUrl" label="Nghe từ" autoplay />
+        </p>
+
+        <div v-if="study.revealed" class="answer">
+          <p class="meaning">
+            <span v-if="study.current.word.pos" class="pos">{{ study.current.word.pos }}</span>
+            {{ study.current.word.meaningVi }}
+          </p>
+          <ul class="examples">
+            <li v-for="example in study.current.word.examples" :key="example.id">
+              <p class="example-en">
+                {{ example.textEn }}
+                <AudioButton :url="example.audioUrl" label="Nghe câu ví dụ" />
+              </p>
+              <p class="example-vi">{{ example.textVi }}</p>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <footer class="actions">
+        <button v-if="!study.revealed" type="button" class="primary wide" @click="study.reveal()">
+          Hiện đáp án
+        </button>
+        <div v-else class="ratings">
+          <button
+            v-for="item in ratings"
+            :key="item.rating"
+            type="button"
+            :class="['rating', item.tone]"
+            @click="study.rate(item.rating)"
+          >
+            <span class="rating-label">{{ item.label }}</span>
+            <span class="rating-interval">{{ study.intervals?.[item.rating] }}</span>
+          </button>
+        </div>
+      </footer>
+    </template>
+  </main>
+</template>
