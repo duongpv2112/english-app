@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { TestProject } from 'vitest/node'
 
 declare module 'vitest' {
@@ -39,7 +40,9 @@ export default async function setup(project: TestProject) {
     throw new Error(`Refusing to run tests against non-test database: ${url}`)
   }
 
+  // Run from apps/api so other packages (e.g. the content importer) can reuse this setup.
   execFileSync('pnpm', ['exec', 'prisma', 'migrate', 'deploy'], {
+    cwd: fileURLToPath(new URL('..', import.meta.url)),
     env: { ...process.env, DATABASE_URL: url },
     stdio: 'pipe',
     shell: true,
