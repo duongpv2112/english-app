@@ -9,7 +9,7 @@ const HEADER_CELLS = new Set(['headword', 'word', 'lemma'])
 export function parseTslCsv(text: string): string[] {
   const lemmas: string[] = []
   const seen = new Set<string>()
-  const lines = text.replace(/^﻿/, '').split(/\r?\n/)
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/)
   lines.forEach((line, i) => {
     const cell = (line.split(',')[0] ?? '')
       .trim()

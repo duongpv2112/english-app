@@ -4,7 +4,7 @@ import { importTsl, parseTslCsv } from './tsl.ts'
 
 describe('parseTslCsv', () => {
   it('parses a messy CSV', () => {
-    const csv = '﻿Headword,Rank\r\nInvoice,1\r\n\r\n"budget",2\r\n invoice ,3\r\ndeadline\r\n'
+    const csv = '\uFEFFHeadword,Rank\r\nInvoice,1\r\n\r\n"budget",2\r\n invoice ,3\r\ndeadline\r\n'
     expect(parseTslCsv(csv)).toEqual(['invoice', 'budget', 'deadline'])
   })
 
