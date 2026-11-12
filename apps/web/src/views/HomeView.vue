@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { goToLogin } from '../auth/sessionExpired.ts'
 import { useAuthStore } from '../stores/auth.ts'
 import { useStudyStore } from '../stores/study.ts'
 
@@ -12,7 +13,7 @@ const total = computed(() => (study.today ? study.today.dueCount + study.today.n
 
 onMounted(async () => {
   await study.loadToday()
-  if (study.unauthenticated) await router.replace('/login')
+  if (study.unauthenticated) await goToLogin(router, '/')
 })
 
 async function logout() {

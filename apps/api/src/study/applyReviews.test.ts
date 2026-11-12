@@ -101,3 +101,38 @@ describe('applyReviews', () => {
     })
   })
 })
+
+describe('applyReviews concurrency', () => {
+  let user: User
+  let cardId: string
+  beforeEach(async () => {
+    await resetDb(db)
+    user = await seedTestUser(db)
+    await seedWords(db, 1)
+    cardId = (await buildTodayQueue(db, user.id, t0)).cards[0]!.cardId
+  })
+
+  it('two batches for the same card at once both count', async () => {
+    await Promise.all([
+      applyReviews(db, user.id, [review(cardId, 1, t0)], now),
+      applyReviews(db, user.id, [review(cardId, 3, t1)], now),
+    ])
+    const s = cardToState(await db.card.findUniqueOrThrow({ where: { id: cardId } }))
+    expect(s).toEqual(
+      replayReviews([
+        { rating: 1, reviewedAt: t0 },
+        { rating: 3, reviewedAt: t1 },
+      ]),
+    )
+  })
+
+  it('the same review sent twice at once is stored once without an error', async () => {
+    const batch = [review(cardId, 3, t0)]
+    const results = await Promise.all([
+      applyReviews(db, user.id, batch, now),
+      applyReviews(db, user.id, batch, now),
+    ])
+    expect(results.map((r) => r.accepted).sort()).toEqual([0, 1])
+    expect(await db.reviewLog.count()).toBe(1)
+  })
+})

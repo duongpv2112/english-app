@@ -19,6 +19,7 @@ export const useStudyStore = defineStore('study', () => {
   async function loadToday() {
     loading.value = true
     error.value = null
+    unauthenticated.value = false
     // Never show yesterday's (or the last session's) counts while the new ones load.
     today.value = null
     try {
@@ -44,6 +45,7 @@ export const useStudyStore = defineStore('study', () => {
     try {
       await sync.flush()
       error.value = null
+      unauthenticated.value = false
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) unauthenticated.value = true
       else {

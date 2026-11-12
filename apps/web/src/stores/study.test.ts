@@ -89,6 +89,17 @@ describe('study store', () => {
     expect(store.error).toBeNull()
   })
 
+  it('clears the unauthenticated flag on the next successful load and send', async () => {
+    const store = await startedStore()
+    apiMock.mockRejectedValueOnce(new ApiError('UNAUTHENTICATED', 401, 'Not logged in'))
+    store.flip()
+    await store.rate(3)
+    expect(store.unauthenticated).toBe(true)
+    apiMock.mockResolvedValueOnce(fakeToday(['c'], now))
+    await store.loadToday()
+    expect(store.unauthenticated).toBe(false)
+  })
+
   it('flags unauthenticated on 401 and keeps the review', async () => {
     const store = await startedStore()
     apiMock.mockRejectedValueOnce(new ApiError('UNAUTHENTICATED', 401, 'Not logged in'))

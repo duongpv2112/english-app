@@ -2,42 +2,39 @@
 import type { Rating } from '@english-app/shared'
 import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth.ts'
+import { goToLogin } from '../auth/sessionExpired.ts'
 import { useStudyStore } from '../stores/study.ts'
+import { keyAction } from '../study/keys.ts'
 import { currentItem } from '../study/session.ts'
 
 const study = useStudyStore()
-const auth = useAuthStore()
 const router = useRouter()
 
 const item = computed(() => (study.session ? currentItem(study.session) : undefined))
 const remaining = computed(() => study.session?.queue.length ?? 0)
 
-const ratings: { value: Rating; label: string; key: string }[] = [
-  { value: 1, label: 'Quên', key: '1' },
-  { value: 2, label: 'Khó', key: '2' },
-  { value: 3, label: 'Được', key: '3' },
-  { value: 4, label: 'Dễ', key: '4' },
+const ratings: { value: Rating; label: string }[] = [
+  { value: 1, label: 'Quên' },
+  { value: 2, label: 'Khó' },
+  { value: 3, label: 'Được' },
+  { value: 4, label: 'Dễ' },
 ]
 
 watch(
   () => study.unauthenticated,
   async (yes) => {
-    if (!yes) return
-    auth.user = null
-    await router.replace('/login?redirect=/study')
+    if (yes) await goToLogin(router, '/study')
   },
 )
 
 function onKey(e: KeyboardEvent) {
-  if (e.target instanceof HTMLInputElement || e.repeat) return
-  if (e.key === ' ' && !study.flipped) {
-    e.preventDefault()
-    study.flip()
-    return
-  }
-  const r = ratings.find((x) => x.key === e.key)
-  if (r && study.flipped) void study.rate(r.value)
+  const target = e.target as HTMLElement | null
+  if (target?.closest('input, textarea, select, [contenteditable]')) return
+  const action = keyAction(e, study.flipped)
+  if (!action) return
+  e.preventDefault()
+  if (action.type === 'flip') study.flip()
+  else void study.rate(action.rating)
 }
 
 onMounted(async () => {
