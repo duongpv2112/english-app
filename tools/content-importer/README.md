@@ -17,7 +17,7 @@ Database phải đã chạy migration mới nhất (`pnpm --filter @english-app/
 Chạy từ thư mục gốc của repo:
 
 ```bash
-pnpm --filter @english-app/content-importer cli import-tsl /đường/dẫn/tsl.csv
+pnpm --filter @english-app/content-importer cli import-tsl data/tsl.csv
 ```
 
 ```bash
@@ -28,7 +28,7 @@ pnpm --filter @english-app/content-importer cli enrich --limit 20
 pnpm --filter @english-app/content-importer cli report --out report.md
 ```
 
-- `import-tsl <csv>`: nạp từ và thứ hạng. Từ đã có thì bỏ qua, nên chạy lại bao nhiêu lần cũng được.
+- `import-tsl <csv>`: nạp từ và thứ hạng. Đường dẫn tương đối tính từ thư mục bạn đang đứng. File có thể ngăn cách bằng `,`, `;` hoặc tab. Từ đã có thì bỏ qua, nên chạy lại bao nhiêu lần cũng được. Nếu thứ hạng của một từ mới đã thuộc về từ khác trong database (ví dụ từ thử nghiệm), từ đó không được nạp và được liệt kê ở mục "rank conflicts"; hãy xóa từ cũ rồi chạy lại.
 - `enrich [--limit N]`: gọi Claude để tạo loại từ, IPA, nghĩa tiếng Việt và 2 câu ví dụ cho các từ chưa có nghĩa, theo thứ hạng. Mỗi request 20 từ, lỗi thì thử lại tối đa 3 lần. Từ vẫn lỗi được ghi vào `failed.json`; chạy lại `enrich` sẽ thử lại các từ đó.
 - `report [--since YYYY-MM-DD] [--out file]`: xuất bảng markdown các từ đã có nội dung để rà lại. Mặc định ghi ra `report.md`.
 

@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createPrisma, type PrismaClient } from '@english-app/api/db'
 import { readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { createClaudeEnricher } from './claudeEnricher.ts'
 import { enrich } from './enrich.ts'
@@ -40,9 +41,16 @@ async function importTslCommand(args: string[], env: Env) {
   const file = positionals[0]
   if (!file) throw new UsageError('import-tsl needs a CSV file')
   const { DATABASE_URL } = requireEnv(env, ['DATABASE_URL'])
-  const rows = parseTslCsv(readFileSync(file, 'utf8'))
-  const { inserted, skipped } = await withDb(DATABASE_URL, (db) => importTsl(db, rows))
-  console.log(`Inserted ${inserted}, skipped ${skipped}`)
+  // `pnpm --filter` runs in this package's directory; INIT_CWD is where the user typed the command.
+  const path = resolve(env.INIT_CWD ?? process.cwd(), file)
+  const rows = parseTslCsv(readFileSync(path, 'utf8'))
+  const { inserted, skipped, rankConflicts } = await withDb(DATABASE_URL, (db) =>
+    importTsl(db, rows),
+  )
+  console.log(`Inserted ${inserted}, skipped ${skipped}, rank conflicts ${rankConflicts.length}`)
+  for (const c of rankConflicts) {
+    console.log(`  not inserted: ${c.lemma} (rank ${c.rank}, taken by ${c.takenBy})`)
+  }
 }
 
 async function enrichCommand(args: string[], env: Env) {

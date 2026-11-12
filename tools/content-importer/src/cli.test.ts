@@ -56,6 +56,24 @@ describe('main', () => {
     expect(await db.word.count()).toBe(2)
   })
 
+  it('resolves a relative CSV path against the directory pnpm was started from', async () => {
+    writeFileSync(join(dir, 'rel.csv'), 'word\ninvoice\n')
+    expect(await main(['import-tsl', 'rel.csv'], { ...env(), INIT_CWD: dir })).toBe(0)
+    expect(await db.word.count()).toBe(1)
+  })
+
+  it('prints rank conflicts', async () => {
+    const csv = join(dir, 'conflict.csv')
+    writeFileSync(csv, 'word\ninvoice\n')
+    await main(['import-tsl', csv], env())
+    writeFileSync(csv, 'word\nbudget\n')
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    expect(await main(['import-tsl', csv], env())).toBe(0)
+    const out = log.mock.calls.flat().join('\n')
+    expect(out).toContain('rank conflicts 1')
+    expect(out).toContain('budget (rank 1, taken by invoice)')
+  })
+
   it('writes the report to --out', async () => {
     const out = join(dir, 'report.md')
     expect(await main(['report', '--out', out], env())).toBe(0)

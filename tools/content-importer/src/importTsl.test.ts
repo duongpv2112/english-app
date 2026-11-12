@@ -25,6 +25,15 @@ describe('parseTslCsv', () => {
     expect(() => parseTslCsv('lemma,rank\ninvoice,abc\n')).toThrow(/invalid rank.*invoice/i)
   })
 
+  it('reads semicolon and tab separated files', () => {
+    expect(parseTslCsv('word;sfi\ninvoice;1\n')).toEqual([{ lemma: 'invoice', rank: 1 }])
+    expect(parseTslCsv('word\tsfi\ninvoice\t1\n')).toEqual([{ lemma: 'invoice', rank: 1 }])
+  })
+
+  it('throws on a rank used twice in the file', () => {
+    expect(() => parseTslCsv('word,rank\ninvoice,1\nbudget,1\n')).toThrow(/rank 1.*budget/i)
+  })
+
   it('keeps the first of duplicate lemmas', () => {
     expect(parseTslCsv('word\ninvoice\nInvoice\n')).toEqual([{ lemma: 'invoice', rank: 1 }])
   })
@@ -44,8 +53,21 @@ describe('importTsl', () => {
       { lemma: 'invoice', rank: 1 },
       { lemma: 'budget', rank: 2 },
     ]
-    expect(await importTsl(db, rows)).toEqual({ inserted: 2, skipped: 0 })
-    expect(await importTsl(db, rows)).toEqual({ inserted: 0, skipped: 2 })
+    expect(await importTsl(db, rows)).toEqual({ inserted: 2, skipped: 0, rankConflicts: [] })
+    expect(await importTsl(db, rows)).toEqual({ inserted: 0, skipped: 2, rankConflicts: [] })
     expect(await db.word.count()).toBe(2)
+  })
+
+  it('reports words whose rank is taken by another word', async () => {
+    await importTsl(db, [{ lemma: 'test', rank: 1 }])
+    const res = await importTsl(db, [
+      { lemma: 'invoice', rank: 1 },
+      { lemma: 'budget', rank: 2 },
+    ])
+    expect(res).toEqual({
+      inserted: 1,
+      skipped: 0,
+      rankConflicts: [{ lemma: 'invoice', rank: 1, takenBy: 'test' }],
+    })
   })
 })

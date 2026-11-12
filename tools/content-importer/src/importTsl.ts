@@ -14,6 +14,8 @@ export interface TslRow {
 export function parseTslCsv(text: string): TslRow[] {
   const records: string[][] = parse(text, {
     bom: true,
+    // Excel in comma-decimal locales (e.g. Vietnamese) saves "CSV" with semicolons.
+    delimiter: [',', ';', '\t'],
     skip_empty_lines: true,
     relax_column_count: true,
   })
@@ -24,6 +26,7 @@ export function parseTslCsv(text: string): TslRow[] {
   const rankCol = columns.indexOf('rank')
 
   const seen = new Set<string>()
+  const rankOwner = new Map<number, string>()
   const rows: TslRow[] = []
   data.forEach((record, i) => {
     const lemma = (record[wordCol] ?? '').trim().toLowerCase()
@@ -33,19 +36,53 @@ export function parseTslCsv(text: string): TslRow[] {
     if (!Number.isInteger(rank) || rank < 1) {
       throw new Error(`Invalid rank for "${lemma}": ${record[rankCol]}`)
     }
+    const owner = rankOwner.get(rank)
+    if (owner) throw new Error(`Rank ${rank} is used by both "${owner}" and "${lemma}"`)
+    rankOwner.set(rank, lemma)
     rows.push({ lemma, rank })
   })
   return rows
 }
 
-/** Inserts words that are not there yet; a lemma or rank that already exists is skipped. */
+export interface RankConflict {
+  lemma: string
+  rank: number
+  takenBy: string
+}
+
+/**
+ * Inserts words that are not there yet. A lemma that already exists is `skipped`; a new
+ * lemma whose rank belongs to another word is not inserted and is listed in `rankConflicts`.
+ */
 export async function importTsl(
   db: PrismaClient,
   rows: TslRow[],
-): Promise<{ inserted: number; skipped: number }> {
+): Promise<{ inserted: number; skipped: number; rankConflicts: RankConflict[] }> {
+  const existing = await db.word.findMany({
+    where: {
+      OR: [
+        { lemma: { in: rows.map((r) => r.lemma) } },
+        { tslRank: { in: rows.map((r) => r.rank) } },
+      ],
+    },
+    select: { lemma: true, tslRank: true },
+  })
+  const lemmas = new Set(existing.map((w) => w.lemma))
+  const rankOwner = new Map(existing.map((w) => [w.tslRank, w.lemma]))
+
+  const rankConflicts: RankConflict[] = []
+  const fresh: TslRow[] = []
+  for (const r of rows) {
+    if (lemmas.has(r.lemma)) continue
+    const takenBy = rankOwner.get(r.rank)
+    if (takenBy) rankConflicts.push({ lemma: r.lemma, rank: r.rank, takenBy })
+    else fresh.push(r)
+  }
+
+  // skipDuplicates still guards against a concurrent run inserting the same rows.
   const { count } = await db.word.createMany({
-    data: rows.map((r) => ({ lemma: r.lemma, tslRank: r.rank })),
+    data: fresh.map((r) => ({ lemma: r.lemma, tslRank: r.rank })),
     skipDuplicates: true,
   })
-  return { inserted: count, skipped: rows.length - count }
+  return { inserted: count, skipped: rows.length - rankConflicts.length - count, rankConflicts }
 }
