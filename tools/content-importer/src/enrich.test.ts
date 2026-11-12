@@ -50,7 +50,10 @@ describe('enrich', () => {
       [2, 3],
       [3, 3],
     ])
-    const words = await db.word.findMany({ orderBy: { tslRank: 'asc' }, include: { examples: true } })
+    const words = await db.word.findMany({
+      orderBy: { tslRank: 'asc' },
+      include: { examples: true },
+    })
     for (const w of words.slice(0, 3)) {
       expect(w.meaningVi).toBe('nghĩa')
       expect(w.enrichedAt).not.toBeNull()
@@ -137,7 +140,9 @@ describe('enrichedWordSchema', () => {
   it('rejects a word with zero or three examples', () => {
     const ex = { textEn: 'A.', textVi: 'B.' }
     expect(enrichedWordSchema.safeParse({ ...good('x'), examples: [] }).success).toBe(false)
-    expect(enrichedWordSchema.safeParse({ ...good('x'), examples: [ex, ex, ex] }).success).toBe(false)
+    expect(enrichedWordSchema.safeParse({ ...good('x'), examples: [ex, ex, ex] }).success).toBe(
+      false,
+    )
     expect(enrichedWordSchema.safeParse({ ...good('x'), examples: [ex] }).success).toBe(true)
   })
 })

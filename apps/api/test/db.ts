@@ -9,3 +9,7 @@ export function testDb(): PrismaClient {
 export async function resetDb(db: PrismaClient) {
   await db.$executeRawUnsafe('TRUNCATE TABLE "User", "Word" CASCADE')
 }
+
+export function testDatabaseUrl(): string {
+  return inject('databaseUrl')
+}

@@ -1,1 +1,1 @@
-export { resetDb, testDb } from '../../../apps/api/test/db.ts'
+export { resetDb, testDatabaseUrl, testDb } from '../../../apps/api/test/db.ts'

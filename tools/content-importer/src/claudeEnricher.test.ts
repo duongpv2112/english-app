@@ -21,7 +21,9 @@ describe('buildEnrichRequest', () => {
   })
 
   it('sends a plain schema without a $schema key', () => {
-    expect(buildEnrichRequest(['x'], 'm').output_config?.format?.schema).not.toHaveProperty('$schema')
+    expect(buildEnrichRequest(['x'], 'm').output_config?.format?.schema).not.toHaveProperty(
+      '$schema',
+    )
   })
 
   it('makes every nested object in the schema closed', () => {
