@@ -32,7 +32,7 @@ describe('study store', () => {
     const store = await startedStore()
     expect(apiMock).toHaveBeenCalledWith('/study/today')
     expect(store.today?.cards).toHaveLength(2)
-    expect(currentItem(store.session!)?.card.word.lemma).toBe('a')
+    expect(currentItem(store.session!, new Date())?.card.word.lemma).toBe('a')
   })
 
   it('loadToday drops the previous queue while reloading', async () => {
@@ -60,7 +60,7 @@ describe('study store', () => {
     store.flip()
     await store.rate(4)
     expect(store.flipped).toBe(false)
-    expect(currentItem(store.session!)?.card.word.lemma).toBe('b')
+    expect(currentItem(store.session!, new Date())?.card.word.lemma).toBe('b')
     const [path, init] = apiMock.mock.calls.at(-1)!
     expect(path).toBe('/reviews/batch')
     const body = init?.body as { reviews: unknown[] }
@@ -72,7 +72,7 @@ describe('study store', () => {
   it('ignores a rating before the card is flipped', async () => {
     const store = await startedStore()
     await store.rate(3)
-    expect(currentItem(store.session!)?.card.word.lemma).toBe('a')
+    expect(currentItem(store.session!, new Date())?.card.word.lemma).toBe('a')
     expect(apiMock).toHaveBeenCalledTimes(1)
   })
 

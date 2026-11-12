@@ -27,12 +27,25 @@ export function createSession(today: StudyTodayResponse): Session {
   }
 }
 
-export function currentItem(s: Session): SessionItem | undefined {
-  return s.queue[0]
+/** The first card in the queue that is due at `now`; learning cards wait for their step. */
+export function currentItem(s: Session, now: Date): SessionItem | undefined {
+  return s.queue.find((i) => i.state.due <= now)
+}
+
+/** When the next waiting card becomes due, or null when the session is finished. */
+export function nextDueAt(s: Session): Date | null {
+  if (s.queue.length === 0) return null
+  return new Date(Math.min(...s.queue.map((i) => i.state.due.getTime())))
+}
+
+/** Countdown text like "9:59" for a wait of `ms` milliseconds (rounded up to the second). */
+export function formatWait(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000))
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
 
 /**
- * Rates the current card. If FSRS schedules it again before the day ends it goes back into
+ * Rates the current (due) card. If FSRS schedules it again before the day ends it goes back into
  * the queue, after every card due no later than it; otherwise it leaves the session.
  */
 export function rateCurrent(
@@ -41,10 +54,10 @@ export function rateCurrent(
   now: Date,
   newId: () => string,
 ): { session: Session; review: Review } {
-  const [item, ...rest] = s.queue
-  if (!item) throw new Error('No card to rate')
+  const item = currentItem(s, now)
+  if (!item) throw new Error('No card due to rate')
   const state = applyRating(item.state, rating, now)
-  const queue = [...rest]
+  const queue = s.queue.filter((i) => i !== item)
   if (state.due < s.dayEnd) {
     const at = queue.findIndex((q) => q.state.due > state.due)
     queue.splice(at === -1 ? queue.length : at, 0, { card: item.card, state })

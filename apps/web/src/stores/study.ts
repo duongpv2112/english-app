@@ -38,7 +38,7 @@ export const useStudyStore = defineStore('study', () => {
   }
 
   function flip() {
-    if (session.value && currentItem(session.value)) flipped.value = true
+    if (session.value && currentItem(session.value, new Date())) flipped.value = true
   }
 
   async function syncNow() {
@@ -57,7 +57,7 @@ export const useStudyStore = defineStore('study', () => {
   }
 
   async function rate(rating: Rating) {
-    if (!session.value || !flipped.value || !currentItem(session.value)) return
+    if (!session.value || !flipped.value || !currentItem(session.value, new Date())) return
     const result = rateCurrent(session.value, rating, new Date(), () => crypto.randomUUID())
     session.value = result.session
     flipped.value = false

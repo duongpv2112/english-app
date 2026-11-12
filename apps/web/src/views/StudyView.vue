@@ -1,16 +1,32 @@
 <script setup lang="ts">
 import type { Rating } from '@english-app/shared'
-import { computed, onMounted, onUnmounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { goToLogin } from '../auth/sessionExpired.ts'
 import { useStudyStore } from '../stores/study.ts'
 import { keyAction } from '../study/keys.ts'
-import { currentItem } from '../study/session.ts'
+import { currentItem, formatWait, nextDueAt } from '../study/session.ts'
 
 const study = useStudyStore()
 const router = useRouter()
 
-const item = computed(() => (study.session ? currentItem(study.session) : undefined))
+// Ticks every second so a waiting learning card appears when its step is over.
+const now = ref(Date.now())
+let timer: ReturnType<typeof setInterval> | undefined
+
+// Refresh right after each rating so the countdown starts from the real remaining time.
+watch(
+  () => study.session,
+  () => (now.value = Date.now()),
+)
+
+const item = computed(() =>
+  study.session ? currentItem(study.session, new Date(now.value)) : undefined,
+)
+const waitText = computed(() => {
+  const next = study.session ? nextDueAt(study.session) : null
+  return next ? formatWait(next.getTime() - now.value) : null
+})
 const remaining = computed(() => study.session?.queue.length ?? 0)
 
 const ratings: { value: Rating; label: string }[] = [
@@ -39,10 +55,14 @@ function onKey(e: KeyboardEvent) {
 
 onMounted(async () => {
   window.addEventListener('keydown', onKey)
+  timer = setInterval(() => (now.value = Date.now()), 1000)
   await study.loadToday()
   study.start()
 })
-onUnmounted(() => window.removeEventListener('keydown', onKey))
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKey)
+  clearInterval(timer)
+})
 </script>
 
 <template>
@@ -84,6 +104,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
           </div>
         </template>
         <button v-else type="button" class="primary" @click="study.flip()">Lật thẻ</button>
+      </section>
+
+      <section v-else-if="waitText" class="done">
+        <h1>Nghỉ một chút</h1>
+        <p>Thẻ tiếp theo sau {{ waitText }}</p>
+        <button type="button" class="secondary" @click="router.push('/')">Về trang chủ</button>
       </section>
 
       <section v-else class="done">
