@@ -51,3 +51,25 @@ export const studyTodayResponseSchema = z.object({
 })
 
 export type StudyTodayResponse = z.infer<typeof studyTodayResponseSchema>
+
+export const reviewSchema = z.object({
+  id: z.uuid(),
+  cardId: z.string().min(1),
+  rating: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  reviewedAt: z.iso.datetime(),
+})
+
+export type Review = z.infer<typeof reviewSchema>
+
+export const reviewBatchRequestSchema = z.object({
+  reviews: z.array(reviewSchema).min(1).max(500),
+})
+
+export type ReviewBatchRequest = z.infer<typeof reviewBatchRequestSchema>
+
+export const reviewBatchResponseSchema = z.object({
+  accepted: z.number().int(),
+  duplicates: z.number().int(),
+})
+
+export type ReviewBatchResponse = z.infer<typeof reviewBatchResponseSchema>
