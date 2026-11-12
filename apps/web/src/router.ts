@@ -13,6 +13,11 @@ export function createAppRouter(history: RouterHistory) {
     routes: [
       { path: '/login', component: () => import('./views/LoginView.vue') },
       { path: '/', component: () => import('./views/HomeView.vue'), meta: { requiresAuth: true } },
+      {
+        path: '/study',
+        component: () => import('./views/StudyView.vue'),
+        meta: { requiresAuth: true },
+      },
     ],
   })
 
