@@ -19,6 +19,18 @@ describe('router auth guard', () => {
     expect(router.currentRoute.value.query.redirect).toBe('/')
   })
 
+  it('/study requires login', async () => {
+    const auth = useAuthStore()
+    vi.spyOn(auth, 'fetchMe').mockImplementation(async () => {
+      auth.user = null
+      auth.checked = true
+    })
+    const router = createAppRouter(createMemoryHistory())
+    await router.push('/study')
+    expect(router.currentRoute.value.path).toBe('/login')
+    expect(router.currentRoute.value.query.redirect).toBe('/study')
+  })
+
   it('redirects /login → / when already authenticated', async () => {
     const auth = useAuthStore()
     auth.user = { id: '1', email: 'me@mail.com' }

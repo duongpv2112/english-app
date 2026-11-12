@@ -15,4 +15,84 @@ model User {
   timezone     String   @default("Asia/Ho_Chi_Minh")
   playbackRate Float    @default(1.0)
   startedAt    DateTime @default(now())
+  cards        Card[]
+  dictations   DictationAttempt[]
+}
+
+model Word {
+  id         String    @id @default(cuid())
+  lemma      String    @unique
+  tslRank    Int       @unique
+  // Filled by the content importer's `enrich`; null means not enriched yet.
+  pos        String?
+  ipa        String?
+  meaningVi  String?
+  enrichedAt DateTime?
+  audioKey   String?
+  examples   Example[]
+  cards      Card[]
+}
+
+model Example {
+  id         String             @id @default(cuid())
+  wordId     String
+  word       Word               @relation(fields: [wordId], references: [id])
+  textEn     String
+  textVi     String
+  audioKey   String?
+  voice      String?
+  dictations DictationAttempt[]
+
+  @@index([wordId])
+}
+
+enum CardMode {
+  RECOGNIZE
+  LISTEN_TYPE
+}
+
+model Card {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  wordId        String
+  word          Word        @relation(fields: [wordId], references: [id])
+  mode          CardMode
+  // FSRS state (ts-fsrs)
+  due           DateTime
+  stability     Float
+  difficulty    Float
+  learningSteps Int
+  scheduledDays Int
+  reps          Int
+  lapses        Int
+  state         Int // 0 New, 1 Learning, 2 Review, 3 Relearning
+  lastReview    DateTime?
+  logs          ReviewLog[]
+
+  @@unique([userId, wordId, mode])
+  @@index([userId, due])
+}
+
+model ReviewLog {
+  id         String   @id // client-generated UUID, used for dedupe
+  cardId     String
+  card       Card     @relation(fields: [cardId], references: [id])
+  rating     Int // 1 Again, 2 Hard, 3 Good, 4 Easy
+  reviewedAt DateTime
+  receivedAt DateTime @default(now())
+
+  @@index([cardId, reviewedAt])
+}
+
+model DictationAttempt {
+  id        String   @id // client-generated UUID
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  exampleId String
+  example   Example  @relation(fields: [exampleId], references: [id])
+  input     String
+  score     Float
+  diff      Json
+  createdAt DateTime
 }

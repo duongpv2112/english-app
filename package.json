@@ -10,7 +10,7 @@
     "dev": "pnpm -r --parallel --filter ./apps/* dev",
     "db:start": "pnpm --filter @english-app/dev-db start",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "test": "pnpm -r --workspace-concurrency=1 test",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",

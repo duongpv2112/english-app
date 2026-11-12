@@ -1,0 +1,19 @@
+{
+  "name": "@english-app/content-importer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cli": "node --env-file-if-exists=.env src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "@english-app/api": "workspace:*",
+    "csv-parse": "^6.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "vitest": "5.1.0"
+  }
+}
