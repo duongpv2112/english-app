@@ -16,3 +16,27 @@ model User {
   playbackRate Float    @default(1.0)
   startedAt    DateTime @default(now())
 }
+
+model Word {
+  id        String    @id @default(cuid())
+  lemma     String    @unique
+  // pos, ipa and meaningVi stay null until the content importer's `enrich` step fills them.
+  pos       String?
+  ipa       String?
+  meaningVi String?
+  tslRank   Int       @unique
+  audioKey  String?
+  examples  Example[]
+}
+
+model Example {
+  id       String  @id @default(cuid())
+  wordId   String
+  word     Word    @relation(fields: [wordId], references: [id])
+  textEn   String
+  textVi   String
+  audioKey String?
+  voice    String?
+
+  @@index([wordId])
+}

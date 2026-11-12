@@ -5,13 +5,12 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { TestProject } from 'vitest/node'
+import './db.ts'
 
-declare module 'vitest' {
-  export interface ProvidedContext {
-    databaseUrl: string
-  }
-}
+// Other workspace packages reuse this setup, so run Prisma from the api package, not the cwd.
+const apiDir = fileURLToPath(new URL('..', import.meta.url))
 
 export default async function setup(project: TestProject) {
   let pg: EmbeddedPostgres | undefined
@@ -40,6 +39,7 @@ export default async function setup(project: TestProject) {
   }
 
   execFileSync('pnpm', ['exec', 'prisma', 'migrate', 'deploy'], {
+    cwd: apiDir,
     env: { ...process.env, DATABASE_URL: url },
     stdio: 'pipe',
     shell: true,

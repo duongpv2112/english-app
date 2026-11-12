@@ -2,6 +2,10 @@
   "name": "@english-app/api",
   "private": true,
   "type": "module",
+  "exports": {
+    "./db": "./src/db.ts",
+    "./test/db": "./test/db.ts"
+  },
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsc -p tsconfig.json",
