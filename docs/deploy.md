@@ -16,12 +16,13 @@ Push nhánh `main` lên repo GitHub. CI (`.github/workflows/ci.yml`) sẽ tự c
 ## 3. Tạo service trên Render
 
 1. Vào https://dashboard.render.com, chọn **New → Blueprint**, rồi chọn repo này. Render sẽ đọc file `render.yaml`.
-2. Nhập hai biến môi trường:
+2. Nhập các biến môi trường:
    - `DATABASE_URL`: connection string của Neon ở bước 1.
    - `SESSION_SECRET`: 64 ký tự hex. Tạo bằng lệnh:
      ```bash
      node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
      ```
+   - `AUDIO_BASE_URL` (không bắt buộc): địa chỉ công khai của bucket R2 chứa audio, ví dụ `https://pub-xxxx.r2.dev`. Xem `docs/content-importer.md`. Để trống thì thẻ không có audio.
 3. Bấm Deploy. Bước build sẽ tự chạy migration (`prisma migrate deploy`).
 4. Kiểm tra: mở `https://<tên-service>.onrender.com/api/health`. Kết quả phải là `{"status":"ok"}`.
 

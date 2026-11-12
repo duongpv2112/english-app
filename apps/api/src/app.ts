@@ -7,6 +7,7 @@ import { authPlugin } from './plugins/auth.ts'
 import { registerErrorHandling } from './plugins/errorHandler.ts'
 import { authRoutes } from './routes/auth.ts'
 import { healthRoutes } from './routes/health.ts'
+import { studyRoutes } from './routes/study.ts'
 import { registerSpa } from './plugins/spa.ts'
 
 declare module 'fastify' {
@@ -31,6 +32,7 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   await app.register(authPlugin, { config })
   await app.register(healthRoutes)
   await app.register(authRoutes)
+  await app.register(studyRoutes, { config })
   if (config.webDistDir) await registerSpa(app, config.webDistDir)
 
   return app

@@ -17,3 +17,5 @@ services:
         sync: false
       - key: SESSION_SECRET
         sync: false
+      - key: AUDIO_BASE_URL
+        sync: false
