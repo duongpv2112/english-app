@@ -12,3 +12,7 @@ pnpm db:start   # local Postgres 17 on :5432 (embedded, no Docker)
 pnpm dev        # api + web
 pnpm test
 ```
+
+## Content
+
+Vocabulary is loaded with the content importer (`pnpm importer <command>`). See `docs/content-importer.md`.

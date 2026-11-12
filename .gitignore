@@ -7,3 +7,6 @@ coverage
 !.env.test.example
 .data
 .superpowers/
+failed.json
+report.md
+report.csv

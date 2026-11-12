@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "pnpm -r --parallel --filter ./apps/* dev",
     "db:start": "pnpm --filter @english-app/dev-db start",
+    "importer": "node --env-file-if-exists=tools/content-importer/.env tools/content-importer/src/cli.ts",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",

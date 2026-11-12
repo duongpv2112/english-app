@@ -329,7 +329,7 @@ it('throws with the status on a non-2xx response', async () => {
   - `requireEnv(env: NodeJS.ProcessEnv, names: string[]): Record<string, string>` — ném `Error` liệt kê **tất cả** tên biến còn thiếu hoặc rỗng.
   - Biến cần cho từng lệnh: mọi lệnh cần `DATABASE_URL`; `enrich` thêm `ANTHROPIC_API_KEY`; `tts` thêm `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`.
   - `cli.ts`: `parseArgs` → `requireEnv` → mới tạo kết nối DB → chạy lệnh → in một dòng tóm tắt → đóng DB. Lỗi thì in message (không in stack) và thoát mã 1.
-  - Root script: `"importer": "pnpm --filter @english-app/content-importer exec node --env-file-if-exists=.env src/cli.ts"`.
+  - Root script: `"importer": "node --env-file-if-exists=tools/content-importer/.env tools/content-importer/src/cli.ts"`.
 
 - [ ] **Step 1: Viết test** (`report.test.ts`, `args.test.ts`)
 
