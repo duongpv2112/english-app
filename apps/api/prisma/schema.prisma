@@ -62,7 +62,7 @@ model Card {
   due           DateTime
   stability     Float
   difficulty    Float
-  elapsedDays   Int
+  learningSteps Int
   scheduledDays Int
   reps          Int
   lapses        Int

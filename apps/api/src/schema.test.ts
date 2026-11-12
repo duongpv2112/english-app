@@ -7,7 +7,7 @@ const fsrsNew = {
   due: new Date(),
   stability: 0,
   difficulty: 0,
-  elapsedDays: 0,
+  learningSteps: 0,
   scheduledDays: 0,
   reps: 0,
   lapses: 0,
