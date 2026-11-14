@@ -220,4 +220,53 @@ describe('study store', () => {
     expect(store.intervals).toMatchObject({ 1: '1 phút', 2: '6 phút', 3: '10 phút' })
     expect(store.intervals![4]).toMatch(/^\d+ ngày$/)
   })
+
+  describe('listen-and-type cards', () => {
+    const listenFirst = (): StudyTodayResponse => ({
+      ...today(2),
+      cards: [fakeCard(1, now, 'LISTEN_TYPE'), fakeCard(2, now)],
+    })
+
+    it('checkTyped with the right word reveals the card and suggests Good', async () => {
+      stubServer(listenFirst(), ok)
+      const store = useStudyStore()
+      await store.load()
+      expect(store.suggestedRating).toBeNull()
+      store.checkTyped(' W1 ')
+      expect(store.revealed).toBe(true)
+      expect(store.typedCorrect).toBe(true)
+      expect(store.suggestedRating).toBe(3)
+    })
+
+    it('checkTyped with a wrong word suggests Again, and any rating can still be chosen', async () => {
+      const calls = stubServer(listenFirst(), ok)
+      const store = useStudyStore()
+      await store.load()
+      store.checkTyped('w9')
+      expect(store.typedCorrect).toBe(false)
+      expect(store.suggestedRating).toBe(1)
+      store.rate(3)
+      await settle()
+      expect(posts(calls)[0]!.body!.reviews[0]).toMatchObject({ cardId: '1', rating: 3 })
+    })
+
+    it('checkTyped does nothing on a RECOGNIZE card', async () => {
+      stubServer(today(1), ok)
+      const store = useStudyStore()
+      await store.load()
+      store.checkTyped('w1')
+      expect(store.revealed).toBe(false)
+      expect(store.typedCorrect).toBeNull()
+    })
+
+    it('typedCorrect resets on the next card', async () => {
+      stubServer(listenFirst(), ok)
+      const store = useStudyStore()
+      await store.load()
+      store.checkTyped('w1')
+      store.rate(3)
+      expect(store.typedCorrect).toBeNull()
+      expect(store.suggestedRating).toBeNull()
+    })
+  })
 })

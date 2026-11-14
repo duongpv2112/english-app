@@ -281,3 +281,32 @@ button:disabled {
 .done {
   text-align: center;
 }
+
+/* Listen-and-type cards */
+.listen {
+  gap: 16px;
+  text-align: left;
+}
+.listen-audio {
+  margin: 8px 0;
+  text-align: center;
+}
+.listen-audio .audio-button {
+  gap: 8px;
+  padding: 12px 20px;
+  font-weight: 600;
+}
+.typed-result {
+  margin: 12px 0 0;
+  font-weight: 600;
+}
+.typed-result.right {
+  color: var(--good);
+}
+.typed-result.not-right {
+  color: var(--again);
+}
+.rating.suggested {
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
+}

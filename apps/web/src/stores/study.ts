@@ -1,5 +1,6 @@
 import {
   applyRating,
+  isTypedCorrect,
   previewDue,
   type Rating,
   type ReviewBatchResponse,
@@ -34,6 +35,9 @@ export const useStudyStore = defineStore('study', {
     newCount: 0,
     dayEndsAt: null as string | null,
     revealed: false,
+    /** For a listen-and-type card: what was typed, and whether it was the word. Null until checked. */
+    typedInput: '',
+    typedCorrect: null as boolean | null,
     reviewedCount: 0,
     /** Ratings not yet confirmed by the server. */
     pending: loadPending(),
@@ -43,6 +47,9 @@ export const useStudyStore = defineStore('study', {
   getters: {
     current: (state): StudyCard | null => state.queue[0] ?? null,
     finished: (state): boolean => state.status === 'ready' && state.queue.length === 0,
+    /** The rating a typed answer points to: Good when right, Again when wrong. Only a suggestion. */
+    suggestedRating: (state): Rating | null =>
+      state.typedCorrect === null ? null : state.typedCorrect ? 3 : 1,
     /** For the card on screen: how long until it returns, for each of the four ratings. */
     intervals(): Record<Rating, string> | null {
       const card = this.current
@@ -69,6 +76,8 @@ export const useStudyStore = defineStore('study', {
         this.newCount = today.newCount
         this.dayEndsAt = today.dayEndsAt
         this.revealed = false
+        this.typedInput = ''
+        this.typedCorrect = null
         this.status = 'ready'
       } catch (error) {
         noteIfLoggedOut(error)
@@ -78,6 +87,15 @@ export const useStudyStore = defineStore('study', {
 
     reveal() {
       if (this.current) this.revealed = true
+    },
+
+    /** Checks the typed answer of a listen-and-type card and shows the card's back. */
+    checkTyped(input: string) {
+      const card = this.current
+      if (!card || card.mode !== 'LISTEN_TYPE' || this.revealed) return
+      this.typedInput = input.trim()
+      this.typedCorrect = isTypedCorrect(card.word.lemma, input)
+      this.revealed = true
     },
 
     /** Rates the card on screen, moves on, and sends the rating in the background. */
@@ -102,6 +120,8 @@ export const useStudyStore = defineStore('study', {
         new Date(this.dayEndsAt),
       )
       this.revealed = false
+      this.typedInput = ''
+      this.typedCorrect = null
       this.reviewedCount++
       void this.flush()
     },

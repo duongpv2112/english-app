@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Rating } from '@english-app/shared'
-import { onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AudioButton from '../components/AudioButton.vue'
 import { useStudyStore } from '../stores/study.ts'
 
@@ -13,12 +13,24 @@ const ratings: { rating: Rating; label: string; tone: string }[] = [
   { rating: 4, label: 'Dễ', tone: 'easy' },
 ]
 
+const typed = ref('')
+const isListen = computed(() => study.current?.mode === 'LISTEN_TYPE')
+/** A listen card hides the word until it is checked; without audio the meaning is the prompt. */
+const showWord = computed(() => !isListen.value || study.revealed)
+
+function check() {
+  study.checkTyped(typed.value)
+  typed.value = ''
+}
+
 function onKey(event: KeyboardEvent) {
   if (event.ctrlKey || event.metaKey || event.altKey || !study.current) return
+  // Typing an answer: the form handles Enter, and digits belong to the text.
+  if (event.target instanceof HTMLInputElement) return
   // A focused button already reacts to Space and Enter itself.
   const onButton = event.target instanceof HTMLElement && event.target.closest('button, a')
   if (!study.revealed) {
-    if ((event.key === ' ' || event.key === 'Enter') && !onButton) {
+    if ((event.key === ' ' || event.key === 'Enter') && !onButton && !isListen.value) {
       event.preventDefault()
       study.reveal()
     }
@@ -69,11 +81,50 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <!-- The key makes Vue rebuild the card, so audio restarts and nothing carries over. -->
       <article :key="study.current.cardId + study.reviewedCount" class="flashcard">
         <p v-if="study.current.isNew" class="badge">Từ mới</p>
-        <h1 class="lemma">{{ study.current.word.lemma }}</h1>
-        <p class="ipa">
-          <span v-if="study.current.word.ipa">{{ study.current.word.ipa }}</span>
-          <AudioButton :url="study.current.word.audioUrl" label="Nghe từ" autoplay />
-        </p>
+        <p v-else-if="isListen" class="badge">Nghe và gõ lại</p>
+
+        <template v-if="showWord">
+          <h1 class="lemma">{{ study.current.word.lemma }}</h1>
+          <p class="ipa">
+            <span v-if="study.current.word.ipa">{{ study.current.word.ipa }}</span>
+            <AudioButton :url="study.current.word.audioUrl" label="Nghe từ" :autoplay="!isListen" />
+          </p>
+          <p
+            v-if="study.typedCorrect !== null"
+            :class="['typed-result', study.typedCorrect ? 'right' : 'not-right']"
+            role="status"
+          >
+            <template v-if="study.typedCorrect">Đúng rồi</template>
+            <template v-else-if="study.typedInput">
+              Chưa đúng — bạn gõ: <s>{{ study.typedInput }}</s>
+            </template>
+            <template v-else>Chưa đúng — bạn chưa gõ gì</template>
+          </p>
+        </template>
+
+        <form v-else class="listen" @submit.prevent="check">
+          <p v-if="study.current.word.audioUrl" class="listen-audio">
+            <AudioButton :url="study.current.word.audioUrl" label="Nghe lại" autoplay>
+              Nghe lại
+            </AudioButton>
+          </p>
+          <template v-else>
+            <p class="meaning">{{ study.current.word.meaningVi }}</p>
+            <p class="muted">Chưa có audio — gõ từ tiếng Anh có nghĩa này.</p>
+          </template>
+          <label>
+            Gõ lại từ bạn nghe
+            <input
+              v-model="typed"
+              type="text"
+              autocomplete="off"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+              autofocus
+            />
+          </label>
+        </form>
 
         <div v-if="study.revealed" class="answer">
           <p class="meaning">
@@ -93,7 +144,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       </article>
 
       <footer class="actions">
-        <button v-if="!study.revealed" type="button" class="primary wide" @click="study.reveal()">
+        <button
+          v-if="!study.revealed && isListen"
+          type="button"
+          class="primary wide"
+          @click="check"
+        >
+          Kiểm tra
+        </button>
+        <button
+          v-else-if="!study.revealed"
+          type="button"
+          class="primary wide"
+          @click="study.reveal()"
+        >
           Hiện đáp án
         </button>
         <div v-else class="ratings">
@@ -101,7 +165,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
             v-for="item in ratings"
             :key="item.rating"
             type="button"
-            :class="['rating', item.tone]"
+            :class="['rating', item.tone, { suggested: study.suggestedRating === item.rating }]"
             @click="study.rate(item.rating)"
           >
             <span class="rating-label">{{ item.label }}</span>
