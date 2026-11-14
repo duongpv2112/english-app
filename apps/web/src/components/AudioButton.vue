@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
+import { useSettingsStore } from '../stores/settings.ts'
 
 const props = defineProps<{
   /** Address of the audio file; nothing is rendered without one. */
@@ -8,9 +9,11 @@ const props = defineProps<{
   label: string
   /** Start playing as soon as the audio is shown. */
   autoplay?: boolean
-  /** Playback speed; 1 is normal. */
+  /** Playback speed; without it the default speed from the settings is used. */
   rate?: number
 }>()
+
+const settings = useSettingsStore()
 
 const failed = ref(false)
 let audio: HTMLAudioElement | null = null
@@ -25,7 +28,7 @@ async function play(byUser: boolean) {
   stop()
   failed.value = false
   const player = new Audio(props.url)
-  player.playbackRate = props.rate ?? 1
+  player.playbackRate = props.rate ?? settings.playbackRate
   audio = player
   player.addEventListener('error', () => {
     if (audio === player) failed.value = true

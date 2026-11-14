@@ -269,4 +269,14 @@ describe('study store', () => {
       expect(store.suggestedRating).toBeNull()
     })
   })
+
+  it('updateWord replaces the word on every queued card of that word', async () => {
+    const listen = fakeCard(1, now, 'LISTEN_TYPE')
+    const recognise = { ...fakeCard(2, now), word: listen.word }
+    stubServer({ ...today(3), cards: [listen, fakeCard(3, now), recognise] }, ok)
+    const store = useStudyStore()
+    await store.load()
+    store.updateWord({ ...listen.word, meaningVi: 'nghĩa mới' })
+    expect(store.queue.map((c) => c.word.meaningVi)).toEqual(['nghĩa mới', 'nghĩa 3', 'nghĩa mới'])
+  })
 })

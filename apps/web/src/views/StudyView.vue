@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { Rating } from '@english-app/shared'
+import type { Rating, StudyWord } from '@english-app/shared'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AudioButton from '../components/AudioButton.vue'
+import WordEditor from '../components/WordEditor.vue'
 import { useStudyStore } from '../stores/study.ts'
 
 const study = useStudyStore()
@@ -14,9 +15,21 @@ const ratings: { rating: Rating; label: string; tone: string }[] = [
 ]
 
 const typed = ref('')
+/** The "Báo sai" form is open for the card on screen. */
+const editing = ref(false)
 const isListen = computed(() => study.current?.mode === 'LISTEN_TYPE')
 /** A listen card hides the word until it is checked; without audio the meaning is the prompt. */
 const showWord = computed(() => !isListen.value || study.revealed)
+
+function saved(word: StudyWord) {
+  study.updateWord(word)
+  editing.value = false
+}
+
+function rate(rating: Rating) {
+  editing.value = false
+  study.rate(rating)
+}
 
 function check() {
   study.checkTyped(typed.value)
@@ -25,8 +38,16 @@ function check() {
 
 function onKey(event: KeyboardEvent) {
   if (event.ctrlKey || event.metaKey || event.altKey || !study.current) return
-  // Typing an answer: the form handles Enter, and digits belong to the text.
-  if (event.target instanceof HTMLInputElement) return
+  // Typing in a field: the form handles Enter, and digits belong to the text.
+  const target = event.target
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    editing.value
+  ) {
+    return
+  }
   // A focused button already reacts to Space and Enter itself.
   const onButton = event.target instanceof HTMLElement && event.target.closest('button, a')
   if (!study.revealed) {
@@ -38,7 +59,7 @@ function onKey(event: KeyboardEvent) {
   }
   if (['1', '2', '3', '4'].includes(event.key)) {
     event.preventDefault()
-    study.rate(Number(event.key) as Rating)
+    rate(Number(event.key) as Rating)
   }
 }
 
@@ -126,7 +147,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           </label>
         </form>
 
-        <div v-if="study.revealed" class="answer">
+        <WordEditor
+          v-if="study.revealed && editing"
+          :word="study.current.word"
+          @saved="saved"
+          @cancel="editing = false"
+        />
+        <div v-else-if="study.revealed" class="answer">
           <p class="meaning">
             <span v-if="study.current.word.pos" class="pos">{{ study.current.word.pos }}</span>
             {{ study.current.word.meaningVi }}
@@ -143,7 +170,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         </div>
       </article>
 
-      <footer class="actions">
+      <footer v-if="!editing" class="actions">
+        <button v-if="study.revealed" type="button" class="link report" @click="editing = true">
+          Báo sai
+        </button>
         <button
           v-if="!study.revealed && isListen"
           type="button"
@@ -166,7 +196,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
             :key="item.rating"
             type="button"
             :class="['rating', item.tone, { suggested: study.suggestedRating === item.rating }]"
-            @click="study.rate(item.rating)"
+            @click="rate(item.rating)"
           >
             <span class="rating-label">{{ item.label }}</span>
             <span class="rating-interval">{{ study.intervals?.[item.rating] }}</span>

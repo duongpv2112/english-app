@@ -7,6 +7,7 @@ import {
   type ReviewInput,
   type StudyCard,
   type StudyTodayResponse,
+  type StudyWord,
 } from '@english-app/shared'
 import { defineStore } from 'pinia'
 import { api, ApiError } from '../api/client.ts'
@@ -87,6 +88,11 @@ export const useStudyStore = defineStore('study', {
 
     reveal() {
       if (this.current) this.revealed = true
+    },
+
+    /** Shows corrected content on every card of the word still in the session. */
+    updateWord(word: StudyWord) {
+      this.queue = this.queue.map((card) => (card.word.id === word.id ? { ...card, word } : card))
     },
 
     /** Checks the typed answer of a listen-and-type card and shows the card's back. */

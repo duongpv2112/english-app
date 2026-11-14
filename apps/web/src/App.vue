@@ -2,8 +2,10 @@
 import { watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth.ts'
+import { useSettingsStore } from './stores/settings.ts'
 
 const auth = useAuthStore()
+const settings = useSettingsStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -12,10 +14,14 @@ const router = useRouter()
 watch(
   () => auth.user,
   (user) => {
+    // Settings belong to the logged-in user (audio speed is used on every page).
+    if (user) void settings.load()
+    else settings.reset()
     if (!user && auth.checked && route.meta.requiresAuth) {
       void router.replace({ path: '/login', query: { redirect: route.fullPath } })
     }
   },
+  { immediate: true },
 )
 </script>
 
