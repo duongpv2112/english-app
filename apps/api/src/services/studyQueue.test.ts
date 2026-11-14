@@ -165,4 +165,31 @@ describe('getStudyToday', () => {
     const theirIds = new Set(theirs.cards.map((c) => c.cardId))
     expect(mine.cards.some((c) => theirIds.has(c.cardId))).toBe(false)
   })
+
+  it('an unlocked LISTEN_TYPE card appears from the next day, without using the new budget', async () => {
+    await seedWords(db, 10)
+    await db.user.update({ where: { id: userId }, data: { newPerDay: 2 } })
+    const first = await getStudyToday(db, userId, now, null)
+    const word = first.cards[0]!.word
+    await db.card.create({
+      data: {
+        ...stateToCardData(newCardState(now)),
+        due: new Date('2026-11-12T17:00:00.000Z'),
+        userId,
+        wordId: word.id,
+        mode: 'LISTEN_TYPE',
+      },
+    })
+
+    const today = await getStudyToday(db, userId, now, null)
+    expect(today.cards.some((c) => c.mode === 'LISTEN_TYPE')).toBe(false)
+
+    const tomorrow = await getStudyToday(db, userId, new Date('2026-11-13T03:00:00.000Z'), null)
+    const listen = tomorrow.cards.filter((c) => c.mode === 'LISTEN_TYPE')
+    expect(listen).toHaveLength(1)
+    expect(listen[0]).toMatchObject({ isNew: false, word: { lemma: word.lemma } })
+    expect(tomorrow.dueCount).toBe(1)
+    expect(tomorrow.newCount).toBe(2)
+    expect(tomorrow.cards[0]!.mode).toBe('LISTEN_TYPE')
+  })
 })

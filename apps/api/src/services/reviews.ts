@@ -1,6 +1,8 @@
 import {
   applyRating,
+  newCardState,
   replayReviews,
+  startOfNextDay,
   type Rating,
   type ReviewBatchResponse,
   type ReviewInput,
@@ -65,6 +67,7 @@ export async function applyReviewBatch(
 
     const updated: ReviewBatchResponse['cards'] = []
     let applied = 0
+    const knownWordIds: string[] = []
     for (const [cardId, fresh] of newByCard) {
       const card = cardById.get(cardId)!
       fresh.sort(inReviewOrder)
@@ -95,6 +98,27 @@ export async function applyReviewBatch(
       await tx.card.update({ where: { id: cardId }, data: stateToCardData(state) })
       applied += fresh.length
       updated.push({ cardId, state })
+      if (card.mode === 'RECOGNIZE' && fresh.some((review) => review.rating >= 3)) {
+        knownWordIds.push(card.wordId)
+      }
+    }
+
+    // Once a word is recognised (Good or Easy), its listen-and-type card is unlocked. It starts
+    // tomorrow: today the meaning was just on screen, so typing it from audio would test nothing.
+    if (knownWordIds.length > 0) {
+      const user = await tx.user.findUniqueOrThrow({ where: { id: userId } })
+      const fresh = stateToCardData(newCardState(startOfNextDay(now, user.timezone)))
+      await tx.card.createMany({
+        data: knownWordIds.map((wordId) => ({
+          ...fresh,
+          userId,
+          wordId,
+          mode: 'LISTEN_TYPE' as const,
+          createdAt: now,
+        })),
+        // Already unlocked by an earlier Good.
+        skipDuplicates: true,
+      })
     }
 
     return { applied, duplicates, rejected, cards: updated }

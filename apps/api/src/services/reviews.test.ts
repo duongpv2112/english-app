@@ -140,4 +140,48 @@ describe('applyReviewBatch', () => {
       cards: [],
     })
   })
+
+  const listenCards = () => db.card.findMany({ where: { userId, mode: 'LISTEN_TYPE' } })
+
+  it('first Good on a RECOGNIZE card unlocks its LISTEN_TYPE card, due tomorrow', async () => {
+    await applyReviewBatch(db, userId, [r(cards[0]!, 3, t)], now)
+    const unlocked = await listenCards()
+    expect(unlocked).toHaveLength(1)
+    expect(unlocked[0]).toMatchObject({ wordId: cards[0]!.word.id, state: 0, reps: 0 })
+    // Start of the next local day in Ho Chi Minh.
+    expect(unlocked[0]!.due.toISOString()).toBe('2026-11-12T17:00:00.000Z')
+  })
+
+  it('Easy also unlocks; Again and Hard do not', async () => {
+    await applyReviewBatch(
+      db,
+      userId,
+      [r(cards[0]!, 4, t), r(cards[1]!, 1, t), r(cards[2]!, 2, t)],
+      now,
+    )
+    expect((await listenCards()).map((c) => c.wordId)).toEqual([cards[0]!.word.id])
+  })
+
+  it('rating Good again, or resending the batch, never creates a second LISTEN_TYPE card', async () => {
+    const batch = [r(cards[0]!, 3, t)]
+    await applyReviewBatch(db, userId, batch, now)
+    await applyReviewBatch(db, userId, batch, now)
+    await applyReviewBatch(db, userId, [r(cards[0]!, 3, plus(10))], now)
+    expect(await listenCards()).toHaveLength(1)
+  })
+
+  it('reviewing a LISTEN_TYPE card updates it and unlocks nothing', async () => {
+    await applyReviewBatch(db, userId, [r(cards[0]!, 3, t)], now)
+    const [listen] = await listenCards()
+    const review: ReviewInput = {
+      id: randomUUID(),
+      cardId: listen!.id,
+      rating: 3,
+      reviewedAt: plus(30).toISOString(),
+    }
+    const res = await applyReviewBatch(db, userId, [review], now)
+    expect(res.applied).toBe(1)
+    expect(res.cards[0]!.state).toMatchObject({ state: 1, reps: 1 })
+    expect(await db.card.count({ where: { userId } })).toBe(4)
+  })
 })

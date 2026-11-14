@@ -8,6 +8,7 @@ import {
 import type { Card, Example, PrismaClient, Word } from '../db.ts'
 import { cardToState, stateToCardData } from './cardState.ts'
 
+/** New words are introduced through their recognise card. */
 const MODE = 'RECOGNIZE' as const
 const withWord = { word: { include: { examples: { orderBy: { id: 'asc' } } } } } as const
 
@@ -18,7 +19,7 @@ function toStudyCard(card: CardWithWord, audioBaseUrl: string | null): StudyCard
   return {
     cardId: card.id,
     mode: card.mode,
-    isNew: card.state === 0,
+    isNew: card.state === 0 && card.mode === MODE,
     state: cardToState(card),
     word: {
       id: card.word.id,
@@ -91,7 +92,13 @@ export async function getStudyToday(
   }
 
   const dueCards = await db.card.findMany({
-    where: { userId, mode: MODE, state: { not: 0 }, due: { lt: dayEnd } },
+    where: {
+      userId,
+      due: { lt: dayEnd },
+      // A listen-and-type card is unlocked by studying, not introduced as a new word, so even an
+      // unreviewed one counts as due rather than against the new-word allowance.
+      OR: [{ mode: MODE, state: { not: 0 } }, { mode: 'LISTEN_TYPE' }],
+    },
     orderBy: [{ due: 'asc' }, { id: 'asc' }],
     include: withWord,
   })
