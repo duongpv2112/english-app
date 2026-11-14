@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { startOfDay, startOfNextDay } from './day.ts'
+import {
+  addDays,
+  isValidTimeZone,
+  localDate,
+  startOfDay,
+  startOfLocalDate,
+  startOfNextDay,
+} from './day.ts'
 
 const iso = (d: Date) => d.toISOString()
 
@@ -34,5 +41,32 @@ describe('day boundaries', () => {
     const now = new Date('2026-11-12T20:00:00Z')
     expect(iso(startOfDay(now, 'Not/AZone'))).toBe('2026-11-12T17:00:00.000Z')
     expect(iso(startOfDay(now, ''))).toBe('2026-11-12T17:00:00.000Z')
+  })
+
+  it('localDate uses the zone', () => {
+    const at = new Date('2026-11-12T20:00:00Z')
+    expect(localDate(at, 'Asia/Ho_Chi_Minh')).toBe('2026-11-13')
+    expect(localDate(at, 'America/New_York')).toBe('2026-11-12')
+  })
+
+  it('addDays crosses months and years', () => {
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01')
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28')
+    expect(addDays('2026-11-14', -6)).toBe('2026-11-08')
+  })
+
+  it('startOfLocalDate', () => {
+    expect(iso(startOfLocalDate('2027-02-01', 'Asia/Ho_Chi_Minh'))).toBe('2027-01-31T17:00:00.000Z')
+    expect(iso(startOfLocalDate('2026-03-08', 'America/New_York'))).toBe('2026-03-08T05:00:00.000Z')
+  })
+
+  it('isValidTimeZone accepts IANA names only', () => {
+    for (const zone of ['Asia/Ho_Chi_Minh', 'UTC', 'America/New_York', 'Etc/GMT+5']) {
+      expect(isValidTimeZone(zone)).toBe(true)
+    }
+    // '+07:00' works in Intl but Postgres reads offsets with the opposite sign.
+    for (const zone of ['', 'Mars/Base', 'GMT+99', '+07:00', 'Asia/Ho Chi Minh']) {
+      expect(isValidTimeZone(zone)).toBe(false)
+    }
   })
 })

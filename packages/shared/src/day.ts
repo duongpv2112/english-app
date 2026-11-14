@@ -67,3 +67,42 @@ export function startOfNextDay(now: Date, timezone: string): Date {
     tomorrow.getUTCDate(),
   )
 }
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+function parseDate(date: string): [number, number, number] {
+  const [year, month, day] = date.split('-').map(Number) as [number, number, number]
+  return [year, month, day]
+}
+
+/** The local calendar date of an instant, as 'YYYY-MM-DD'. */
+export function localDate(at: Date, timezone: string): string {
+  const { year, month, day } = wallClock(formatterFor(timezone), at)
+  return `${year}-${pad(month)}-${pad(day)}`
+}
+
+/** The calendar date `days` after (or before, when negative) a 'YYYY-MM-DD' date. */
+export function addDays(date: string, days: number): string {
+  const [year, month, day] = parseDate(date)
+  return new Date(Date.UTC(year, month - 1, day) + days * DAY_MS).toISOString().slice(0, 10)
+}
+
+/** The instant a 'YYYY-MM-DD' date begins in the zone. */
+export function startOfLocalDate(date: string, timezone: string): Date {
+  const [year, month, day] = parseDate(date)
+  return midnightOf(formatterFor(timezone), year, month, day)
+}
+
+// Region/City style names only. Intl also takes offsets such as "+07:00", but the database reads
+// those with the opposite sign, so they are not accepted.
+const ZONE_NAME = /^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)*$/
+
+export function isValidTimeZone(name: string): boolean {
+  if (!ZONE_NAME.test(name)) return false
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: name })
+    return true
+  } catch {
+    return false
+  }
+}

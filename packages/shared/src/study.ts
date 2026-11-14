@@ -4,28 +4,32 @@ import { cardStateSchema, ratingSchema } from './srs.ts'
 export const cardModeSchema = z.enum(['RECOGNIZE', 'LISTEN_TYPE'])
 export type CardMode = z.infer<typeof cardModeSchema>
 
+/** A word as shown on a card. */
+export const studyWordSchema = z.object({
+  id: z.string(),
+  lemma: z.string(),
+  pos: z.string().nullable(),
+  ipa: z.string().nullable(),
+  meaningVi: z.string(),
+  audioUrl: z.string().nullable(),
+  examples: z.array(
+    z.object({
+      id: z.string(),
+      textEn: z.string(),
+      textVi: z.string(),
+      audioUrl: z.string().nullable(),
+    }),
+  ),
+})
+export type StudyWord = z.infer<typeof studyWordSchema>
+
 export const studyCardSchema = z.object({
   cardId: z.string(),
   mode: cardModeSchema,
   /** True for a card that has never been reviewed. */
   isNew: z.boolean(),
   state: cardStateSchema,
-  word: z.object({
-    id: z.string(),
-    lemma: z.string(),
-    pos: z.string().nullable(),
-    ipa: z.string().nullable(),
-    meaningVi: z.string(),
-    audioUrl: z.string().nullable(),
-    examples: z.array(
-      z.object({
-        id: z.string(),
-        textEn: z.string(),
-        textVi: z.string(),
-        audioUrl: z.string().nullable(),
-      }),
-    ),
-  }),
+  word: studyWordSchema,
 })
 export type StudyCard = z.infer<typeof studyCardSchema>
 
