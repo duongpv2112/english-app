@@ -16,6 +16,7 @@ model User {
   playbackRate Float    @default(1.0)
   startedAt    DateTime @default(now())
   cards        Card[]
+  dictations   DictationAttempt[]
 }
 
 model Word {
@@ -37,8 +38,9 @@ model Example {
   word     Word    @relation(fields: [wordId], references: [id])
   textEn   String
   textVi   String
-  audioKey String?
-  voice    String?
+  audioKey   String?
+  voice      String?
+  dictations DictationAttempt[]
 
   @@index([wordId])
 }
@@ -82,4 +84,18 @@ model ReviewLog {
   receivedAt DateTime @default(now())
 
   @@index([cardId, reviewedAt])
+}
+
+model DictationAttempt {
+  id        String   @id // UUID made by the client, so a retried request is not stored twice
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  exampleId String
+  example   Example  @relation(fields: [exampleId], references: [id])
+  input     String
+  score     Float // share of the sentence's words typed correctly, 0 to 1
+  diff      Json // word-by-word comparison (DiffToken[] from packages/shared)
+  createdAt DateTime
+
+  @@index([userId, exampleId, createdAt])
 }

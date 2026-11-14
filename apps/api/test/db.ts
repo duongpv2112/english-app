@@ -13,6 +13,6 @@ export function testDb(): PrismaClient {
 
 export async function resetDb(db: PrismaClient) {
   await db.$executeRawUnsafe(
-    'TRUNCATE TABLE "ReviewLog", "Card", "Example", "Word", "User" CASCADE',
+    'TRUNCATE TABLE "DictationAttempt", "ReviewLog", "Card", "Example", "Word", "User" CASCADE',
   )
 }

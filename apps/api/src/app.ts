@@ -6,6 +6,7 @@ import { createPrisma } from './db.ts'
 import { authPlugin } from './plugins/auth.ts'
 import { registerErrorHandling } from './plugins/errorHandler.ts'
 import { authRoutes } from './routes/auth.ts'
+import { dictationRoutes } from './routes/dictation.ts'
 import { healthRoutes } from './routes/health.ts'
 import { studyRoutes } from './routes/study.ts'
 import { registerSpa } from './plugins/spa.ts'
@@ -33,6 +34,7 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   await app.register(healthRoutes)
   await app.register(authRoutes)
   await app.register(studyRoutes, { config })
+  await app.register(dictationRoutes, { config })
   if (config.webDistDir) await registerSpa(app, config.webDistDir)
 
   return app
