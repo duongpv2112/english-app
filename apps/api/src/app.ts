@@ -8,7 +8,9 @@ import { registerErrorHandling } from './plugins/errorHandler.ts'
 import { authRoutes } from './routes/auth.ts'
 import { dictationRoutes } from './routes/dictation.ts'
 import { healthRoutes } from './routes/health.ts'
+import { settingsRoutes } from './routes/settings.ts'
 import { studyRoutes } from './routes/study.ts'
+import { wordRoutes } from './routes/words.ts'
 import { registerSpa } from './plugins/spa.ts'
 
 declare module 'fastify' {
@@ -35,6 +37,8 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   await app.register(authRoutes)
   await app.register(studyRoutes, { config })
   await app.register(dictationRoutes, { config })
+  await app.register(settingsRoutes)
+  await app.register(wordRoutes, { config })
   if (config.webDistDir) await registerSpa(app, config.webDistDir)
 
   return app

@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@english-app/api/db'
+import { createHash } from 'node:crypto'
 
 /** Turns text into MP3 bytes with the given voice. The real one calls Azure; tests pass a fake. */
 export type Synthesizer = (text: string, voice: string) => Promise<Uint8Array>
@@ -60,7 +61,10 @@ export async function generateAudio(
       if (example.audioKey) continue
       await attempt(`example of "${word.lemma}"`, 'examples', async () => {
         const voice = EXAMPLE_VOICES[(word.tslRank + i) % EXAMPLE_VOICES.length]!
-        const audioKey = `audio/examples/${example.id}.mp3`
+        // The text is part of the key: audio is cached for a year, so a corrected sentence must
+        // not reuse the address of the old recording.
+        const textHash = createHash('sha256').update(example.textEn).digest('hex').slice(0, 8)
+        const audioKey = `audio/examples/${example.id}-${textHash}.mp3`
         await upload(audioKey, await synth(example.textEn, voice))
         await db.example.update({ where: { id: example.id }, data: { audioKey, voice } })
       })

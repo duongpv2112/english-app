@@ -1,6 +1,10 @@
 import { resetDb, testDb } from '@english-app/api/test/db'
+import { createHash } from 'node:crypto'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { generateAudio, type Synthesizer, type Uploader } from './tts.ts'
+
+const exampleKey = (e: { id: string; textEn: string }) =>
+  `audio/examples/${e.id}-${createHash('sha256').update(e.textEn).digest('hex').slice(0, 8)}.mp3`
 
 describe('generateAudio', () => {
   const db = testDb()
@@ -38,7 +42,7 @@ describe('generateAudio', () => {
     const w = await seedWord('invoice', 1)
     expect(await generateAudio(db, synth, upload)).toEqual({ words: 1, examples: 2, failed: 0 })
     expect([...uploaded.keys()].sort()).toEqual(
-      [`audio/words/${w.id}.mp3`, ...w.examples.map((e) => `audio/examples/${e.id}.mp3`)].sort(),
+      [`audio/words/${w.id}.mp3`, ...w.examples.map(exampleKey)].sort(),
     )
     expect(synthCalls[0]).toEqual(['invoice', 'en-US-JennyNeural'])
     expect(new TextDecoder().decode(uploaded.get(`audio/words/${w.id}.mp3`))).toBe('invoice')
@@ -47,9 +51,7 @@ describe('generateAudio', () => {
       include: { examples: true },
     })
     expect(saved.audioKey).toBe(`audio/words/${w.id}.mp3`)
-    expect(saved.examples.map((e) => e.audioKey).sort()).toEqual(
-      w.examples.map((e) => `audio/examples/${e.id}.mp3`).sort(),
-    )
+    expect(saved.examples.map((e) => e.audioKey).sort()).toEqual(w.examples.map(exampleKey).sort())
   })
 
   it('rotates example voices across words', async () => {
@@ -99,7 +101,7 @@ describe('generateAudio', () => {
 
   it('a failing item leaves its audioKey null and the rest still run', async () => {
     const w = await seedWord('invoice', 1)
-    const badKey = `audio/examples/${w.examples[0]!.id}.mp3`
+    const badKey = exampleKey(w.examples[0]!)
     const flaky: Uploader = async (key, body) => {
       if (key === badKey) throw new Error('upload failed')
       await upload(key, body)
@@ -112,5 +114,20 @@ describe('generateAudio', () => {
     const bad = await db.example.findUniqueOrThrow({ where: { id: w.examples[0]!.id } })
     expect([bad.audioKey, bad.voice]).toEqual([null, null])
     expect(await generateAudio(db, synth, upload)).toEqual({ words: 0, examples: 1, failed: 0 })
+  })
+
+  it('a changed sentence gets a new key, so cached audio of the old text is not reused', async () => {
+    const w = await seedWord('invoice', 1)
+    await generateAudio(db, synth, upload)
+    const first = w.examples[0]!
+    const oldKey = (await db.example.findUniqueOrThrow({ where: { id: first.id } })).audioKey
+    await db.example.update({
+      where: { id: first.id },
+      data: { textEn: 'A new sentence.', audioKey: null, voice: null },
+    })
+    expect(await generateAudio(db, synth, upload)).toEqual({ words: 0, examples: 1, failed: 0 })
+    const newKey = (await db.example.findUniqueOrThrow({ where: { id: first.id } })).audioKey
+    expect(newKey).toBe(exampleKey({ id: first.id, textEn: 'A new sentence.' }))
+    expect(newKey).not.toBe(oldKey)
   })
 })

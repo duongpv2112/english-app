@@ -3,6 +3,7 @@ import {
   startOfDay,
   startOfNextDay,
   type StudyCard,
+  type StudyWord,
   type StudyTodayResponse,
 } from '@english-app/shared'
 import type { Card, Example, PrismaClient, Word } from '../db.ts'
@@ -12,30 +13,36 @@ import { cardToState, stateToCardData } from './cardState.ts'
 const MODE = 'RECOGNIZE' as const
 const withWord = { word: { include: { examples: { orderBy: { id: 'asc' } } } } } as const
 
-type CardWithWord = Card & { word: Word & { examples: Example[] } }
+type WordWithExamples = Word & { examples: Example[] }
+type CardWithWord = Card & { word: WordWithExamples }
+
+/** A word in the shape shown on a card, with audio addresses when audio is configured. */
+export function toStudyWord(word: WordWithExamples, audioBaseUrl: string | null): StudyWord {
+  const audioUrl = (key: string | null) => (audioBaseUrl && key ? `${audioBaseUrl}/${key}` : null)
+  return {
+    id: word.id,
+    lemma: word.lemma,
+    pos: word.pos,
+    ipa: word.ipa,
+    // Cards are only ever created for words that have a meaning.
+    meaningVi: word.meaningVi ?? '',
+    audioUrl: audioUrl(word.audioKey),
+    examples: word.examples.map((e) => ({
+      id: e.id,
+      textEn: e.textEn,
+      textVi: e.textVi,
+      audioUrl: audioUrl(e.audioKey),
+    })),
+  }
+}
 
 function toStudyCard(card: CardWithWord, audioBaseUrl: string | null): StudyCard {
-  const audioUrl = (key: string | null) => (audioBaseUrl && key ? `${audioBaseUrl}/${key}` : null)
   return {
     cardId: card.id,
     mode: card.mode,
     isNew: card.state === 0 && card.mode === MODE,
     state: cardToState(card),
-    word: {
-      id: card.word.id,
-      lemma: card.word.lemma,
-      pos: card.word.pos,
-      ipa: card.word.ipa,
-      // Cards are only ever created for words that have a meaning.
-      meaningVi: card.word.meaningVi ?? '',
-      audioUrl: audioUrl(card.word.audioKey),
-      examples: card.word.examples.map((e) => ({
-        id: e.id,
-        textEn: e.textEn,
-        textVi: e.textVi,
-        audioUrl: audioUrl(e.audioKey),
-      })),
-    },
+    word: toStudyWord(card.word, audioBaseUrl),
   }
 }
 
