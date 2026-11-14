@@ -21,4 +21,8 @@ Vocabulary is loaded with the content importer (`pnpm importer <command>`). See 
 
 After logging in, the home page shows today's queue (due cards, then new words) and `/study` runs the session: reveal the card, then rate it Again / Hard / Good / Easy. Scheduling is FSRS (`packages/shared/src/srs.ts`), shared by the web app and the API.
 
+Each word has two cards. The recognise card shows the word and asks for its meaning. Once that card is rated Good, a listen-and-type card is unlocked for the next day: it plays the audio and asks you to type the word.
+
+`/dictation` is listening practice: it plays example sentences of words you have studied, you type what you hear, and the result is compared word by word (`packages/shared/src/dictation.ts`). It needs audio, so it stays empty until the importer's `tts` step has run and `AUDIO_BASE_URL` is set.
+
 Set `AUDIO_BASE_URL` in `apps/api/.env` to the public address of the audio bucket to get audio on cards.

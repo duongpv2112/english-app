@@ -11,7 +11,7 @@ import {
 import { defineStore } from 'pinia'
 import { api, ApiError } from '../api/client.ts'
 import { formatInterval } from '../study/format.ts'
-import { loadPending, savePending } from '../study/pending.ts'
+import { pendingReviews } from '../study/pending.ts'
 import { requeue } from '../study/queue.ts'
 import { useAuthStore } from './auth.ts'
 
@@ -40,7 +40,7 @@ export const useStudyStore = defineStore('study', {
     typedCorrect: null as boolean | null,
     reviewedCount: 0,
     /** Ratings not yet confirmed by the server. */
-    pending: loadPending(),
+    pending: pendingReviews.load(),
     /** The last attempt to send pending ratings failed. */
     syncError: false,
   }),
@@ -111,7 +111,7 @@ export const useStudyStore = defineStore('study', {
         rating,
         reviewedAt: reviewedAt.toISOString(),
       })
-      savePending(this.pending)
+      pendingReviews.save(this.pending)
 
       this.queue = requeue(
         this.queue.slice(1),
@@ -155,7 +155,7 @@ export const useStudyStore = defineStore('study', {
         }
         const sent = new Set(batch.map((r: ReviewInput) => r.id))
         this.pending = this.pending.filter((r) => !sent.has(r.id))
-        savePending(this.pending)
+        pendingReviews.save(this.pending)
       }
       this.syncError = false
     },

@@ -14,6 +14,11 @@ export function createAppRouter(history: RouterHistory) {
       { path: '/login', component: () => import('./views/LoginView.vue') },
       { path: '/', component: () => import('./views/HomeView.vue'), meta: { requiresAuth: true } },
       {
+        path: '/dictation',
+        component: () => import('./views/DictationView.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: '/study',
         component: () => import('./views/StudyView.vue'),
         meta: { requiresAuth: true },

@@ -56,6 +56,10 @@ async function logout() {
       </section>
     </template>
 
+    <RouterLink v-if="study.status === 'ready'" to="/dictation" class="button secondary">
+      Luyện nghe chép chính tả
+    </RouterLink>
+
     <p v-if="study.pending.length > 0" class="notice" role="status">
       {{ study.pending.length }} lượt chấm chưa lưu lên máy chủ.
       <button type="button" class="link" @click="study.flush()">Thử lại</button>

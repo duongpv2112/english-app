@@ -1,7 +1,7 @@
 import type { ReviewInput, StudyTodayResponse } from '@english-app/shared'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { loadPending, savePending } from '../study/pending.ts'
+import { pendingReviews } from '../study/pending.ts'
 import { fakeCard } from '../test/cards.ts'
 import { useStudyStore } from './study.ts'
 
@@ -113,7 +113,7 @@ describe('study store', () => {
       { id: expect.any(String), cardId: '1', rating: 3, reviewedAt: now.toISOString() },
     ])
     expect(store.pending).toEqual([])
-    expect(loadPending()).toEqual([])
+    expect(pendingReviews.load()).toEqual([])
     expect(store.syncError).toBe(false)
   })
 
@@ -142,7 +142,7 @@ describe('study store', () => {
     await settle()
     expect(store.pending).toHaveLength(1)
     expect(store.syncError).toBe(true)
-    expect(loadPending()).toEqual(store.pending)
+    expect(pendingReviews.load()).toEqual(store.pending)
     // The session carries on regardless.
     expect(store.current?.cardId).toBe('2')
   })
@@ -181,7 +181,7 @@ describe('study store', () => {
       rating: 3,
       reviewedAt: '2026-11-11T03:00:00.000Z',
     }
-    savePending([left])
+    pendingReviews.save([left])
     const calls = stubServer(today(1), ok)
     const store = useStudyStore()
     expect(store.pending).toEqual([left])
@@ -189,7 +189,7 @@ describe('study store', () => {
     expect(calls.map((c) => c.method)).toEqual(['POST', 'GET'])
     expect(calls[0]!.body!.reviews).toEqual([left])
     expect(store.pending).toEqual([])
-    expect(loadPending()).toEqual([])
+    expect(pendingReviews.load()).toEqual([])
   })
 
   it('a 400 response drops the batch', async () => {
@@ -202,14 +202,14 @@ describe('study store', () => {
     store.rate(3)
     await settle()
     expect(store.pending).toEqual([])
-    expect(loadPending()).toEqual([])
+    expect(pendingReviews.load()).toEqual([])
   })
 
   it('ignores corrupt data in localStorage', () => {
     localStorage.setItem('english-app:pending-reviews', '{not json')
-    expect(loadPending()).toEqual([])
+    expect(pendingReviews.load()).toEqual([])
     localStorage.setItem('english-app:pending-reviews', '[{"id":"x"}]')
-    expect(loadPending()).toEqual([])
+    expect(pendingReviews.load()).toEqual([])
   })
 
   it('intervals labels the four buttons for the current card', async () => {

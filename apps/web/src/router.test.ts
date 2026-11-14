@@ -60,4 +60,14 @@ describe('router auth guard', () => {
     expect(router.currentRoute.value.path).toBe('/login')
     expect(router.currentRoute.value.query.redirect).toBe('/study')
   })
+
+  it('/dictation requires login', async () => {
+    const auth = useAuthStore()
+    auth.user = null
+    auth.checked = true
+    const router = createAppRouter(createMemoryHistory())
+    await router.push('/dictation')
+    expect(router.currentRoute.value.path).toBe('/login')
+    expect(router.currentRoute.value.query.redirect).toBe('/dictation')
+  })
 })
