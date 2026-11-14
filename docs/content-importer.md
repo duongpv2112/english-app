@@ -53,7 +53,29 @@ pnpm importer tts --limit 200
 
 Mỗi lệnh in ra một dòng tóm tắt, ví dụ `enrich: enriched 200, failed 0`.
 
-## 3. Các lệnh
+## 3. Nạp đủ 1.200 từ
+
+Khi đã quen với 200 từ đầu, nạp tiếp tới 1.200 từ theo cùng thứ tự. Các lệnh chỉ xử lý phần còn thiếu, nên chạy lại với `--limit` lớn hơn là được:
+
+```bash
+pnpm importer enrich --limit 1000
+```
+
+```bash
+pnpm importer report
+```
+
+```bash
+pnpm importer tts --limit 1200
+```
+
+`import-tsl` đã nạp cả danh sách ở bước 2 nên không cần chạy lại. `--limit` của `enrich` tính số từ chưa có nghĩa sẽ xử lý trong lần chạy này; của `tts` tính số từ còn thiếu audio.
+
+Nên chia làm vài lần (ví dụ 200 từ mỗi lần) và đọc `report.md` sau mỗi lần. Từ nào sai thì sửa ngay khi học bằng nút "Báo sai" trên thẻ. Sửa câu ví dụ tiếng Anh sẽ xóa audio của câu đó; chạy lại `pnpm importer tts` để tạo audio mới.
+
+Số từ mới mỗi ngày chỉnh trong trang Cài đặt của app (mặc định 20).
+
+## 4. Các lệnh
 
 | Lệnh                                                 | Việc làm                                                                                                                            |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -64,13 +86,13 @@ Mỗi lệnh in ra một dòng tóm tắt, ví dụ `enrich: enriched 200, faile
 
 Giọng đọc: từ dùng giọng Mỹ; câu ví dụ xoay vòng giọng Mỹ, Anh và Úc để quen nhiều giọng như trong bài thi TOEIC.
 
-## 4. Khi có lỗi
+## 5. Khi có lỗi
 
 - **`enrich` báo `failed` lớn hơn 0:** mỗi lô được thử 3 lần. Lô nào vẫn lỗi thì các từ trong lô được ghi vào `failed.json` kèm lý do, và không có gì của lô đó được ghi vào database. Chạy lại `enrich` là các từ này được làm lại. Khi không còn lỗi, `failed.json` tự được xóa.
 - **`tts` báo `failed` lớn hơn 0:** lý do từng mục được in ra màn hình. Chạy lại `tts` để làm lại riêng các mục đó.
 - **Thiếu khóa:** lệnh dừng ngay và nêu tên các biến còn thiếu trong `.env`.
 
-## 5. Chi phí
+## 6. Chi phí
 
 - Claude: mặc định dùng `claude-haiku-5-5`. Đổi model bằng biến `ANTHROPIC_MODEL` trong `.env` nếu chất lượng nội dung chưa đạt.
 - Azure TTS và R2 đều có gói miễn phí. Hãy xem hạn mức hiện tại trên trang giá của từng dịch vụ trước khi nạp đủ 1.200 từ.

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useOnline } from './composables/online.ts'
 import { useAuthStore } from './stores/auth.ts'
+import { useDictationStore } from './stores/dictation.ts'
 import { useSettingsStore } from './stores/settings.ts'
+import { useStudyStore } from './stores/study.ts'
 
 const auth = useAuthStore()
 const settings = useSettingsStore()
@@ -23,6 +26,17 @@ watch(
   },
   { immediate: true },
 )
+
+// Back online: send whatever was rated or typed while the connection was down.
+const online = useOnline()
+const study = useStudyStore()
+const dictation = useDictationStore()
+watch(online, (isOnline) => {
+  if (isOnline && auth.user) {
+    void study.flush()
+    void dictation.flush()
+  }
+})
 </script>
 
 <template>
